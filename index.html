@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Noble Minds School Accounting System</title>
+<meta name="description" content="School fees, payroll, expenses and stock accounting for Nigerian schools. Data is stored privately in this browser.">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0B2559">
+<style>
+:root{--navy:#0B2559;--navy2:#16408A;--navyd:#071A40;--orange:#F47B20;--orange-d:#D9650F;--tint:#FFF3E8;--bg:#F2F5FB;--ok:#1E8E4E;--bad:#C62828;--warn:#B45F06;--line:#DCE3F0;--ink:#16203A}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 "Segoe UI",system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(100deg,var(--navyd),var(--navy) 55%,var(--navy2));color:#fff;display:flex;align-items:center;gap:12px;padding:10px 16px;position:sticky;top:0;z-index:20;border-bottom:3px solid var(--orange);box-shadow:0 2px 10px #0b255955}
+header .logo{width:40px;height:40px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px;box-shadow:0 0 0 3px #ffffff40;flex:none}
+header h1{font-size:16px;margin:0;flex:1;line-height:1.2;font-weight:700}header small{opacity:.75;font-weight:400;font-size:11.5px;letter-spacing:.3px}
+.chip{font-size:11px;padding:3px 9px;border-radius:12px;background:#ffffff26}.chip.ok{background:#1E8E4E}.chip.off{background:#B45F06}.chip.q{background:var(--orange);color:#fff;cursor:pointer}
+nav{display:flex;gap:2px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:63px;z-index:19;padding:0 8px}
+nav a{padding:11px 15px;color:#33415f;text-decoration:none;white-space:nowrap;border-bottom:3px solid transparent;font-weight:600;font-size:13px}nav a:hover{color:var(--orange-d)}nav a.on{border-color:var(--orange);color:var(--navy)}
+main{padding:16px;max-width:1120px;margin:0 auto}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:14px}
+.card{background:#fff;border:1px solid var(--line);border-left:4px solid var(--orange);border-radius:10px;padding:12px 14px;box-shadow:0 1px 3px #0b25590f}.card b{display:block;font-size:20px;color:var(--navy);margin-top:4px}.card span{font-size:11px;color:#5b6784;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 3px #0b25590a}.panel h2{margin:0 0 10px;font-size:15px;color:var(--navy);padding-bottom:6px;border-bottom:2px solid var(--tint)}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.bar .sp{flex:1}.bar input,.bar select{width:auto}
+table{border-collapse:collapse;width:100%}th{background:var(--navy);color:#fff;text-align:left;padding:8px 7px;font-size:12px;position:sticky;top:0}td{padding:7px;border-bottom:1px solid #edf0f7}tr:nth-child(even) td{background:#f8faff}
+.tw{overflow-x:auto;max-height:62vh;border-radius:8px}.num{text-align:right;font-variant-numeric:tabular-nums}tr.click{cursor:pointer}tr.click:hover td{background:var(--tint)}
+tr.grp td{background:var(--tint)!important;color:var(--navy);font-weight:700;border-top:2px solid var(--orange)}
+button,.btn{background:var(--navy);color:#fff;border:1px solid var(--navy);border-radius:8px;padding:8px 13px;cursor:pointer;font-size:13px;font-weight:600;transition:background .15s}
+button:hover,.btn:hover{background:var(--navy2)}button.alt{background:#fff;color:var(--navy);border:1px solid var(--navy)}button.alt:hover{background:var(--tint);border-color:var(--orange);color:var(--orange-d)}
+button.bad{background:var(--bad);border-color:var(--bad)}button.org{background:var(--orange);border-color:var(--orange);color:#fff}button.org:hover{background:var(--orange-d)}button:disabled{opacity:.5}
+button.pill{background:#fff;color:var(--navy);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:12px}button.pill b{color:var(--orange-d);margin-left:3px}button.pill:hover{border-color:var(--orange)}button.pill.on{background:var(--navy);color:#fff;border-color:var(--navy)}button.pill.on b{color:#ffb77a}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+input,select,textarea{padding:8px;border:1px solid #b9c3d8;border-radius:8px;font-size:14px;width:100%;background:#fff;color:var(--ink)}input:focus,select:focus{outline:2px solid #F47B2055;border-color:var(--orange)}input[type=checkbox]{width:auto;accent-color:var(--orange)}
+label{display:block;font-size:12px;color:#44506b;margin:8px 0 2px;font-weight:600}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}@media(max-width:560px){.g2{grid-template-columns:1fr}}
+.tag{font-size:11px;padding:2px 8px;border-radius:10px;background:#e8ecf4;font-weight:600}.VALID{background:#d7eed9}.CANCELLED{background:#fde2c3}.REVERSAL{background:#fde2c3}.REFUND{background:#d8e6fb}.pend{background:#ffe3c9}
+#modal{position:fixed;inset:0;background:#071a4095;display:none;place-items:center;z-index:50;padding:10px}#modal.on{display:grid}
+#box{background:#fff;border-radius:12px;max-width:600px;width:100%;max-height:92vh;overflow:auto;padding:18px;border-top:5px solid var(--orange)}#box h3{margin:0 0 6px;color:var(--navy)}
+#toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--navyd);color:#fff;padding:10px 16px;border-radius:10px;z-index:60;display:none;max-width:90%;border-left:4px solid var(--orange)}
+.muted{color:#6b7791;font-size:12px}.neg{color:var(--bad)}.pos{color:var(--ok)}
+.login,.gate{max-width:410px;margin:8vh auto;background:#fff;border-radius:14px;border:1px solid var(--line);overflow:hidden;box-shadow:0 8px 28px #0b255922}.login{padding:20px}
+.gate .gh{background:linear-gradient(100deg,var(--navyd),var(--navy2));color:#fff;padding:20px;text-align:center;border-bottom:4px solid var(--orange)}.gate .gh h2{margin:8px 0 0;font-size:18px}.gate .gb{padding:18px 20px}
+.gate .lk{width:54px;height:54px;border-radius:50%;background:var(--orange);display:grid;place-items:center;margin:auto;box-shadow:0 0 0 5px #ffffff30}
+.code{font:700 22px/1.2 Consolas,monospace;letter-spacing:2px;text-align:center;background:var(--tint);border:2px dashed var(--orange);border-radius:10px;padding:14px;color:var(--navy);margin:10px 0;user-select:all}
+.rcpt{border:2px solid var(--navy);border-radius:6px;padding:16px;max-width:540px;margin:auto;background:#fff;break-inside:avoid}.rcpt h2{margin:0;color:var(--navy);font-size:17px}.rcpt .t{background:var(--orange);color:#fff;text-align:center;padding:5px;margin:10px 0;font-weight:700;letter-spacing:1px}
+.rcpt .brand{display:flex;align-items:center;gap:10px;border-bottom:3px solid var(--navy);padding-bottom:8px}.rcpt .brand .lg{width:38px;height:38px;border-radius:50%;background:var(--navy);color:#fff;display:grid;place-items:center;font-weight:800;font-size:13px;border:3px solid var(--orange);flex:none}
+.rcpt table td{border:0;padding:3px 4px;background:none!important}.rcpt .big{font-size:18px;font-weight:700;color:var(--navy)}
+#bulkprint{display:none}
+@media print{
+ body:not(.bp) *{visibility:hidden}body:not(.bp) #print-area,body:not(.bp) #print-area *{visibility:visible}body:not(.bp) #print-area{position:absolute;left:0;top:0;width:100%}
+ body.bp>*:not(#bulkprint){display:none!important}body.bp #bulkprint{display:block}
+ .pg{break-after:page;page-break-after:always}.pg:last-child{break-after:auto;page-break-after:auto}
+ .pp2 .rcpt{margin:0 auto 9mm;padding:9px 14px;font-size:11.5px}.pp2 .rcpt h2{font-size:15px}.pp2 .rcpt .big{font-size:15px}.pp1 .rcpt{margin-top:10mm}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal"><div id="box"></div></div>
+<div id="toast"></div>
+<script>window.NM_LOCAL = true;</script>
+<script src="local-engine.js"></script>
+<script>
+"use strict";
+/* ===================== pure helpers (unit-tested) ===================== */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toKobo(s){            // "1,234.5" -> 123450 (integer arithmetic, no floats)
+  s = String(s ?? '').replace(/[,\s₦]/g, ''); if(!/^-?\d+(\.\d{1,2})?$/.test(s)) return null;
+  const neg = s[0] === '-'; if(neg) s = s.slice(1);
+  const [a, b = ''] = s.split('.'); const k = parseInt(a, 10) * 100 + parseInt((b + '00').slice(0, 2), 10);
+  return neg ? -k : k;
+}
+function fmt(k){ k = Number(k || 0); const neg = k < 0; k = Math.abs(k); return (neg ? '-' : '') + Math.floor(k / 100).toLocaleString('en-NG') + '.' + String(k % 100).padStart(2, '0'); }
+const ONES = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const TENS = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function words(n){
+  if(n === 0) return 'Zero'; if(n < 20) return ONES[n];
+  if(n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? '-' + ONES[n % 10] : '');
+  if(n < 1000) return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' and ' + words(n % 100) : '');
+  const sc = [[1e9, 'Billion'], [1e6, 'Million'], [1e3, 'Thousand']];
+  for(const [v, nm] of sc){ if(n >= v){ const r = n % v; return words(Math.floor(n / v)) + ' ' + nm + (r ? (r < 100 ? ' and ' : ', ') + words(r) : ''); } }
+}
+function nairaWords(k){ k = Math.abs(k); const n = Math.floor(k / 100), c = k % 100; return words(n) + ' Naira' + (c ? ' and ' + words(c) + ' Kobo' : '') + ' only'; }
+function outstandingAfter(billed, pays, studentId, createdAt){   // billed - sum(AR credits up to and including this entry)
+  return billed - pays.filter(p => p.student_id === studentId && p.created_at <= createdAt).reduce((a, p) => a + Number(p.ar_kobo), 0);
+}
+const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+const CATS = ['School Fees','PTA Levy','Examination Fee','Lesson Fee','Uniforms','Sportswear','Textbooks','Other Income'];
+const METHODS = ['Cash','Bank Transfer','POS','Cheque'];
+if(typeof module !== 'undefined') module.exports = { toKobo, fmt, words, nairaWords, outstandingAfter, esc };
+</script>
+<script>
+"use strict";
+if (typeof document !== 'undefined' && document.getElementById('app')) (function(){
+/* ============================ state ============================ */
+const $ = (s, r = document) => r.querySelector(s);
+let cfg = { local: true }, sb = null, lastBackup = undefined, chan = null, live = false, loadTimer = null;
+const S = { user: null, profile: null, school: null, classes: [], terms: [], students: [], fees: [], balances: [], payments: [], invoices: [], team: [],
+  staff: [], salary: [], payroll: [], loans: [], loanBal: [], expenses: [], expPay: [], itemStock: [], purchases: [], sales: [] };
+let Q = JSON.parse(localStorage.getItem('nm_queue') || '[]');
+let flushing = false;
+const saveQ = () => localStorage.setItem('nm_queue', JSON.stringify(Q));
+const canWrite = () => S.profile && ['owner', 'bursar'].includes(S.profile.role);
+const isOwner = () => S.profile && S.profile.role === 'owner';
+const online = () => true;                     // local edition: every write is applied immediately on this device
+const isNetErr = e => false;
+function toast(m, ms = 3500){ const t = $('#toast'); t.textContent = m; t.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', ms); }
+function modal(html){ $('#box').innerHTML = html; $('#modal').classList.add('on'); }
+let modalSticky = false;
+function closeModal(){ modalSticky = false; $('#modal').classList.remove('on'); }
+$('#modal').addEventListener('mousedown', e => { if(e.target.id === 'modal' && !modalSticky) closeModal(); });
+
+/* ===================== printing (bulk or single) ===================== */
+function printDocs(htmls, per){
+  per = per === 1 ? 1 : 2; let host = $('#bulkprint');
+  if(!host){ host = document.createElement('div'); host.id = 'bulkprint'; document.body.appendChild(host); }
+  const pages = []; for(let i = 0; i < htmls.length; i += per) pages.push(htmls.slice(i, i + per));
+  host.innerHTML = pages.map(g => `<section class="pg pp${per}">${g.join('')}</section>`).join('');
+  document.body.classList.add('bp');
+  const done = () => { document.body.classList.remove('bp'); host.innerHTML = ''; window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  setTimeout(() => { window.print(); setTimeout(done, 1500); }, 60);
+}
+const selPay = new Set(), selSlip = new Set(), mailed = new Set();
+const LOCK_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+/* ===================== dashboard password gate ===================== */
+let dashOK = false, dashSet = false, lastAct = Date.now();
+const IDLE_MS = 10 * 60 * 1000;
+async function initDash(){ try { dashSet = (await NM_LOCAL_API.dashState()).set; } catch(e){ dashSet = false; } }
+function syncLock(){ const b = $('#lk'); if(b) b.style.display = dashOK ? '' : 'none'; }
+function lockDash(msg){ dashOK = false; syncLock(); if((location.hash || '#/') === '#/') route(); if(msg) toast(msg, 5000); }
+['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { lastAct = Date.now(); }, true));
+setInterval(() => { if(dashOK && Date.now() - lastAct > IDLE_MS) lockDash('Dashboard locked after 10 minutes of inactivity'); }, 20000);
+const failState = () => { try { return JSON.parse(localStorage.getItem('nm_dash_fail') || '{}'); } catch(e){ return {}; } };
+function dashGate(){
+  if(!dashSet) return `<div class="gate"><div class="gh"><div class="lk">${LOCK_SVG}</div><h2>Set the dashboard password</h2></div><div class="gb">
+    <p class="muted">The dashboard shows the school's money position. Choose a password and share it <b>only with the accountant and the proprietors</b>.</p>
+    <label>New password (at least 6 characters)</label><input id="dpw" type="password" autocomplete="new-password"><label>Repeat password</label><input id="dpw2" type="password" autocomplete="new-password">
+    <p><button class="org" data-act="dashcreate">Create password</button></p></div></div>`;
+  return `<div class="gate"><div class="gh"><div class="lk">${LOCK_SVG}</div><h2>Dashboard is locked</h2></div><div class="gb">
+    <p class="muted">Restricted to the accountant and the proprietors. Enter the dashboard password.</p>
+    <label>Password</label><input id="dpw" type="password" autocomplete="current-password">
+    <p><button class="org" data-act="dashunlock">Unlock dashboard</button> <button class="alt" data-act="dashforgot">Forgot password?</button></p></div></div>`;
+}
+function showCode(code, title){
+  modalSticky = true;
+  modal(`<h3>${esc(title)}</h3><p>Your <b>recovery code</b> is below. It is the only way to reset the dashboard password if it is forgotten, and it is shown <b>once</b>.</p><div class="code">${esc(code)}</div>
+  <p class="muted">Write it down and keep it with a proprietor, not in this computer.</p><p><button class="org" data-act="codeok">I have written it down</button></p>`);
+}
+async function dashActs(a){
+  if(a === 'dashcreate'){
+    const p = val('dpw'), p2 = val('dpw2'); if(p.length < 6){ toast('Use at least 6 characters'); return true; } if(p !== p2){ toast('The two passwords do not match'); return true; }
+    try { const code = await NM_LOCAL_API.dashCreate(p); dashSet = true; dashOK = true; lastAct = Date.now(); syncLock(); showCode(code, 'Dashboard password created'); } catch(e){ toast(e.message, 6000); } return true;
+  }
+  if(a === 'dashunlock'){
+    const st = failState(); if(st.until && Date.now() < st.until){ toast('Too many wrong attempts. Wait ' + Math.ceil((st.until - Date.now()) / 1000) + ' seconds.'); return true; }
+    if(await NM_LOCAL_API.dashCheck(val('dpw'))){ localStorage.removeItem('nm_dash_fail'); dashOK = true; lastAct = Date.now(); syncLock(); route(); }
+    else { const n = (st.n || 0) + 1; localStorage.setItem('nm_dash_fail', JSON.stringify(n >= 5 ? { n: 0, until: Date.now() + 30000 } : { n })); toast(n >= 5 ? 'Too many wrong attempts. Try again in 30 seconds.' : 'Wrong password'); }
+    return true;
+  }
+  if(a === 'dashlock'){ lockDash(); return true; }
+  if(a === 'dashforgot'){ modal(`<h3>Reset dashboard password</h3><p class="muted">Enter the recovery code that was shown when the password was created.</p><label>Recovery code</label><input id="f_rc" placeholder="XXXX-XXXX-XXXX"><label>New password</label><input id="f_np" type="password"><label>Repeat new password</label><input id="f_np2" type="password"><p><button class="org" data-act="dashreset">Reset password</button> <button class="alt" data-act="close">Cancel</button></p>`); return true; }
+  if(a === 'dashreset'){
+    if(val('f_np') !== val('f_np2')){ toast('The two passwords do not match'); return true; }
+    try { const code = await NM_LOCAL_API.dashChange({ code: val('f_rc') }, val('f_np')); dashOK = true; lastAct = Date.now(); syncLock(); showCode(code, 'Password reset'); } catch(e){ toast(e.message, 6000); } return true;
+  }
+  if(a === 'dashchange'){ modal(`<h3>Change dashboard password</h3><label>Current password</label><input id="f_cp" type="password"><label>New password (at least 6 characters)</label><input id="f_np" type="password"><label>Repeat new password</label><input id="f_np2" type="password"><p class="muted">Tell the accountant and the proprietors the new password afterwards.</p><p><button class="org" data-act="dashsave">Change password</button> <button class="alt" data-act="close">Cancel</button></p>`); return true; }
+  if(a === 'dashsave'){
+    if(val('f_np') !== val('f_np2')){ toast('The two passwords do not match'); return true; }
+    try { await NM_LOCAL_API.dashChange({ password: val('f_cp') }, val('f_np')); closeModal(); toast('Password changed'); } catch(e){ toast(e.message, 6000); } return true;
+  }
+  if(a === 'codeok'){ modalSticky = false; closeModal(); route(); return true; }
+  return false;
+}
+
+
+/* ============================ boot / auth ============================ */
+async function boot(){
+  if(!cfg){ return setupScreen(); }
+  sb = supabase.createClient(cfg.url, cfg.key, { auth: { persistSession: true, autoRefreshToken: true } });
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch(e){}
+  if(!session && !online() && localStorage.getItem('nm_cache')){ restoreCache(); return shell(); }  // offline: use last session cache
+  if(!session) return loginScreen();
+  S.user = session.user;
+  await loadAll(true);
+  if(!S.profile) return createSchoolScreen();
+  await initDash(); subscribe(); shell(); flushQueue();
+}
+function setupScreen(){
+  $('#app').innerHTML = `<div class="login"><h2>Connect to your cloud database</h2><p class="muted">Paste the Project URL and the <b>anon / public</b> key from Supabase (Project Settings → API). Saved on this device only.</p>
+  <label>Project URL</label><input id="u" placeholder="https://xxxx.supabase.co"><label>Anon public key</label><input id="k">
+  <p><button id="go">Save and continue</button></p></div>`;
+  $('#go').onclick = () => { const url = $('#u').value.trim(), key = $('#k').value.trim(); if(!/^https:\/\/.+/.test(url) || key.length < 20) return toast('Enter a valid URL and key'); localStorage.setItem('nm_cfg', JSON.stringify({ url, key })); location.reload(); };
+}
+function loginScreen(msg){
+  $('#app').innerHTML = `<div class="login"><div style="text-align:center"><div class="logo" style="width:54px;height:54px;border-radius:50%;border:4px solid var(--orange);background:var(--navy);color:#fff;margin:auto;display:grid;place-items:center;font-weight:700">NM</div><h2 style="color:var(--navy)">Noble Minds<br>School Accounting System</h2></div>
+  <p class="muted">${esc(msg || 'Sign in, or create an account if you are the first user of your school.')}</p>
+  <label>Email</label><input id="em" type="email" autocomplete="username"><label>Password (min 8 characters)</label><input id="pw" type="password" autocomplete="current-password">
+  <p><button id="in">Sign in</button> <button id="up" class="alt">Create account</button> <button id="rs" class="alt" style="float:right">Forgot?</button></p>
+  <p class="muted"><a href="#" id="cfgreset">Change database connection</a></p></div>`;
+  $('#in').onclick = async () => { const { error } = await sb.auth.signInWithPassword({ email: $('#em').value.trim(), password: $('#pw').value }); if(error) return toast(error.message); boot(); };
+  $('#up').onclick = async () => { const { data, error } = await sb.auth.signUp({ email: $('#em').value.trim(), password: $('#pw').value }); if(error) return toast(error.message); if(!data.session) return toast('Account created. Check your email to confirm, then sign in.', 7000); boot(); };
+  $('#rs').onclick = async () => { const e = $('#em').value.trim(); if(!e) return toast('Enter your email first'); const { error } = await sb.auth.resetPasswordForEmail(e); toast(error ? error.message : 'Password reset email sent'); };
+  $('#cfgreset').onclick = ev => { ev.preventDefault(); localStorage.removeItem('nm_cfg'); location.reload(); };
+}
+function createSchoolScreen(){
+  $('#app').innerHTML = `<div class="login"><h2>Create your school</h2><p class="muted">Your school's records are saved <b>only in this browser on this computer</b>. Download a backup regularly from the Backup button.</p>
+  <label>School name</label><input id="sn"><label>Receipt prefix (2-8 letters/digits)</label><input id="sp" value="NMI" maxlength="8"><label>Your full name</label><input id="fn">
+  <p><button id="mk">Create school</button></p></div>`;
+  $('#mk').onclick = async () => { const { error } = await sb.rpc('create_school', { p_name: $('#sn').value.trim(), p_prefix: $('#sp').value.trim().toUpperCase(), p_full_name: $('#fn').value.trim() }); if(error) return toast(error.message, 6000); boot(); };
+}
+async function signOut(){ await sb.auth.signOut(); localStorage.removeItem('nm_cache'); location.reload(); }
+
+/* ============================ data ============================ */
+function restoreCache(){ try { Object.assign(S, JSON.parse(localStorage.getItem('nm_cache'))); } catch(e){} }
+async function loadAll(first){
+  if(online()){
+    try {
+      const g = async q => { const { data, error } = await q; if(error) throw error; return data; };
+      const [prof] = await Promise.all([g(sb.from('profiles').select('*').eq('id', S.user.id).maybeSingle())]);
+      S.profile = prof; if(!prof) return;
+      const [school, classes, terms, students, fees, balances, payments, invoices, team, staff, salary, payroll, loans, loanBal, expenses, expPay, itemStock, purchases, sales] = await Promise.all([
+        g(sb.from('schools').select('*').maybeSingle()), g(sb.from('classes').select('*').order('name')),
+        g(sb.from('terms').select('*').order('start_date', { ascending: false })), g(sb.from('students').select('*').order('admission_no')),
+        g(sb.from('fee_schedule').select('*').order('session').order('class_name')), g(sb.from('student_balances').select('*')),
+        g(sb.from('payment_list').select('*').order('created_at', { ascending: false }).limit(2000)),
+        g(sb.from('invoices').select('*').order('created_at', { ascending: false }).limit(3000)), g(sb.from('profiles').select('*')),
+        g(sb.from('staff').select('*').order('staff_no')), g(sb.from('salary_structure').select('*')), g(sb.from('payroll_list').select('*').order('month', { ascending: false }).limit(1500)),
+        g(sb.from('loans').select('*').order('created_at', { ascending: false })), g(sb.from('staff_loan_balances').select('*')), g(sb.from('expenses').select('*').order('created_at', { ascending: false }).limit(1500)),
+        g(sb.from('expense_payments').select('*')), g(sb.from('item_stock').select('*').order('code')), g(sb.from('stock_purchases').select('*').order('created_at', { ascending: false }).limit(1500)),
+        g(sb.from('stock_sales').select('*').order('created_at', { ascending: false }).limit(1500))]);
+      Object.assign(S, { school, classes, terms, students, fees, balances, payments, invoices, team, staff, salary, payroll, loans, loanBal, expenses, expPay, itemStock, purchases, sales });
+      /* local edition: the database itself is the browser store, no separate cache */
+    } catch(e){ if(isNetErr(e)) restoreCache(); else toast('Load error: ' + e.message, 6000); }
+  } else restoreCache();
+  if(!first) route();
+}
+const debLoad = () => { clearTimeout(loadTimer); loadTimer = setTimeout(() => loadAll(), 600); };
+function subscribe(){
+  if(chan) sb.removeChannel(chan);
+  chan = sb.channel('nm-' + S.profile.school_id);
+  for(const t of ['students', 'classes', 'terms', 'fee_schedule', 'invoices', 'payments', 'staff', 'salary_structure', 'payroll_lines', 'payroll_payments', 'loans', 'expenses', 'expense_payments', 'items', 'stock_purchases', 'stock_sales'])
+    chan.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: 'school_id=eq.' + S.profile.school_id }, debLoad);
+  chan.subscribe(st => { live = st === 'SUBSCRIBED'; chip(); });
+}
+
+/* ===== write layer: online -> run now; offline/network error -> queue and replay safely ===== */
+async function exec(item){
+  if(item.kind === 'rpc'){ const { data, error } = await sb.rpc(item.fn, item.args); if(error) throw error; return data; }
+  if(item.kind === 'insert'){ const { error } = await sb.from(item.table).insert(item.row); if(error) throw error; return null; }
+  if(item.kind === 'update'){ const { error } = await sb.from(item.table).update(item.row).eq('id', item.id); if(error) throw error; return null; }
+}
+async function write(item){
+  item.qid = uuid(); item.label = item.label || item.fn || item.table;
+  if(online()){
+    try { const r = await exec(item); await loadAll(); return { ok: true, data: r }; }
+    catch(e){ if(!isNetErr(e)) return { ok: false, error: e.message }; }
+  }
+  Q.push(item); saveQ(); chip(); return { ok: true, queued: true };
+}
+async function flushQueue(){
+  if(flushing || !online() || !Q.length || !sb) return; flushing = true;
+  for(const item of [...Q]){
+    if(item.failed) continue;
+    try { await exec(item); Q = Q.filter(x => x.qid !== item.qid); saveQ(); }
+    catch(e){ if(isNetErr(e)) break; item.failed = e.message; saveQ(); }   // business rule failed: keep for attention, never lose silently
+  }
+  flushing = false; chip(); await loadAll(); if(Q.length === 0) toast('All offline entries synced');
+}
+window.addEventListener('online', () => { chip(); flushQueue(); }); window.addEventListener('offline', chip);
+
+/* ============================ shell / router ============================ */
+const NAV = [['#/', 'Dashboard'], ['#/payments', 'Payments'], ['#/students', 'Students'], ['#/fees', 'Fees & Invoices'], ['#/payroll', 'Payroll'], ['#/expenses', 'Expenses'], ['#/stock', 'Stock'], ['#/setup', 'School Setup']];
+function shell(){
+  $('#app').innerHTML = `<header><div class="logo">NM</div><h1>${esc(S.school ? S.school.name : 'School')}<br><small>Noble Minds School Accounting System</small></h1><span id="chip" class="chip"></span><button class="org" style="padding:4px 10px;display:none" id="lk" data-act="dashlock">Lock dashboard</button><button class="alt" style="padding:4px 9px" id="so">Backup</button></header>
+  <nav>${NAV.map(([h, t]) => `<a href="${h}" data-h="${h}">${t}</a>`).join('')}</nav><main id="main"></main>`;
+  $('#so').onclick = backupModal; chip(); syncLock(); route();
+}
+function chip(){
+  const c = $('#chip'); if(!c) return; const n = Q.length;
+  if(n){ c.className = 'chip q'; c.textContent = n + ' pending sync'; c.onclick = pendingModal; }
+  else if(!online()){ c.className = 'chip off'; c.textContent = 'Offline'; c.onclick = null; }
+  else { c.className = 'chip ok'; c.textContent = 'Saved on this device'; c.onclick = null; }
+}
+window.addEventListener('hashchange', route);
+function route(){
+  const m = $('#main'); if(!m) return; const h = location.hash || '#/';
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.h === h || (h.startsWith('#/student/') && a.dataset.h === '#/students')));
+  try {
+    if(h === '#/') m.innerHTML = dashOK ? pgDash() : dashGate(); else if(h === '#/payments') m.innerHTML = pgPay(); else if(h === '#/students') m.innerHTML = pgStudents();
+    else if(h.startsWith('#/student/')) m.innerHTML = pgStatement(h.split('/')[2]); else if(h === '#/fees') m.innerHTML = pgFees();
+    else if(h === '#/payroll') m.innerHTML = pgPayroll(); else if(h === '#/expenses') m.innerHTML = pgExpenses(); else if(h === '#/stock') m.innerHTML = pgStock(); else if(h === '#/setup') m.innerHTML = pgSetup(); else if(h === '#/team') m.innerHTML = pgTeam(); else m.innerHTML = dashOK ? pgDash() : dashGate();
+  } catch(e){ m.innerHTML = '<div class="panel">Page error: ' + esc(e.message) + '</div>'; }
+  if(lastBackup !== undefined && (lastBackup === null || Date.now() - new Date(lastBackup).getTime() > 7 * 864e5)) m.innerHTML = `<div class="panel" style="border-color:var(--orange);background:#fff8e1"><b>Back up your data.</b> Everything is stored only in this browser. ${lastBackup ? 'Last backup: ' + new Date(lastBackup).toLocaleDateString() + '.' : 'You have not downloaded a backup yet.'} <button data-act="backup" style="margin-left:8px">Download backup</button></div>` + m.innerHTML;
+}
+function pendingModal(){
+  modal(`<h3>Entries waiting to sync</h3><p class="muted">Saved on this device. They are sent automatically when you are online. Receipt numbers are assigned by the server when they sync.</p>
+  <table>${Q.map(q => `<tr><td>${esc(q.label)}${q.failed ? `<br><span class="neg">Rejected: ${esc(q.failed)}</span>` : ''}</td><td>${q.failed ? `<button class="bad" data-act="drop" data-id="${q.qid}">Discard</button>` : '<span class="tag pend">waiting</span>'}</td></tr>`).join('')}</table>
+  <p><button data-act="sync">Sync now</button> <button class="alt" data-act="close">Close</button></p>`);
+}
+
+/* ============================ pages ============================ */
+const stuName = id => { const s = S.students.find(x => x.id === id); return s ? `${s.surname}, ${s.first_name}` : '?'; };
+const balOf = id => S.balances.find(b => b.student_id === id) || { billed_kobo: 0, paid_kobo: 0, outstanding_kobo: 0, advance_kobo: 0 };
+function pgDash(){
+  const b = S.balances, sum = (a, f) => a.reduce((x, y) => x + Number(f(y)), 0);
+  const billed = sum(b, x => x.billed_kobo), collected = sum(b, x => x.paid_kobo), owing = sum(b.filter(x => x.outstanding_kobo > 0), x => x.outstanding_kobo), adv = sum(b, x => x.advance_kobo);
+  const today = new Date().toISOString().slice(0, 10), month = today.slice(0, 7);
+  const pv = S.payments, tot = f => sum(pv.filter(f), p => p.signed_kobo);
+  const debtors = b.filter(x => x.outstanding_kobo > 0).sort((x, y) => y.outstanding_kobo - x.outstanding_kobo).slice(0, 8);
+  const expApproved = sum(S.expenses.filter(e => e.status === 'approved'), e => e.amount_kobo);
+  const pm = [...new Set(S.payroll.filter(l => l.status !== 'draft').map(l => l.month))].sort().pop();
+  const payNet = pm ? sum(S.payroll.filter(l => l.month === pm && l.status !== 'draft'), l => l.net_kobo) : 0;
+  return `<div class="bar"><h2 style="margin:0;color:var(--navy)">Dashboard</h2><span class="sp"></span><button class="alt" data-act="dashchange">Change password</button><button class="org" data-act="dashlock">Lock</button></div>
+  <div class="cards"><div class="card"><span>Fees billed</span><b>₦${fmt(billed)}</b></div><div class="card"><span>Net collected</span><b>₦${fmt(collected)}</b></div>
+  <div class="card"><span>Outstanding fees</span><b>₦${fmt(owing)}</b></div><div class="card"><span>Advance held</span><b>₦${fmt(adv)}</b></div>
+  <div class="card"><span>Collected today</span><b>₦${fmt(tot(p => p.pay_date === today))}</b></div><div class="card"><span>Collected this month</span><b>₦${fmt(tot(p => p.pay_date.startsWith(month)))}</b></div>
+  <div class="card"><span>Approved expenses</span><b>₦${fmt(expApproved)}</b></div><div class="card"><span>Net payroll${pm ? ' · ' + monthLabel(pm) : ''}</span><b>₦${fmt(payNet)}</b></div>
+  <div class="card"><span>Active students</span><b>${S.students.filter(s => s.status === 'active').length}</b></div><div class="card"><span>Expenses awaiting approval</span><b>${S.expenses.filter(e => e.status === 'pending').length}</b></div><div class="card"><span>Items to reorder</span><b>${S.itemStock.filter(i => i.reorder).length}</b></div></div>
+  <div class="panel"><h2>Recent receipts</h2>${payTable(S.payments.slice(0, 8), false)}</div>
+  <div class="panel"><h2>Largest balances owed</h2><div class="tw"><table><tr><th>Student</th><th>Class</th><th class="num">Outstanding ₦</th></tr>${debtors.map(d => `<tr class="click" onclick="location.hash='#/student/${d.student_id}'"><td>${esc(d.surname)}, ${esc(d.first_name)}</td><td>${esc(d.class_name)}</td><td class="num">${fmt(d.outstanding_kobo)}</td></tr>`).join('') || '<tr><td colspan=3 class="muted">Nobody owes fees.</td></tr>'}</table></div></div>`;
+}
+function payFiltered(){
+  const q = (pgPay.q || '').toLowerCase(), f = pgPay.lf || '', t = pgPay.lt || '', cl = pgPay.cl || '';
+  return S.payments.filter(p => (!q || (p.receipt_no + p.surname + p.first_name + p.admission_no).toLowerCase().includes(q)) && (!f || p.pay_date >= f) && (!t || p.pay_date <= t) && (!cl || p.class_name === cl));
+}
+function payTable(rows, actions, sel){
+  const cols = 7 + (actions ? 1 : 0) + (sel ? 1 : 0);
+  return `<div class="tw"><table><tr>${sel ? '<th style="width:28px"><input type="checkbox" id="chkall-pay" title="Select all shown"></th>' : ''}<th>Receipt</th><th>Date</th><th>Student</th><th>Type</th><th>Category</th><th class="num">Amount ₦</th><th>Status</th>${actions ? '<th></th>' : ''}</tr>` +
+    (rows.map(p => `<tr>${sel ? `<td><input type="checkbox" class="chk-pay" data-id="${p.id}" ${selPay.has(p.id) ? 'checked' : ''}></td>` : ''}<td><a href="#" data-act="rcpt" data-id="${p.id}">${esc(p.receipt_no)}</a></td><td>${p.pay_date}</td><td>${esc(p.surname)}, ${esc(p.first_name)}</td><td>${p.entry_type}</td><td>${esc(p.category)}</td><td class="num ${p.signed_kobo < 0 ? 'neg' : ''}">${fmt(p.signed_kobo)}</td><td><span class="tag ${p.status}">${p.status}</span></td>` +
+      (actions ? `<td>${canWrite() && p.status === 'VALID' ? `<button class="alt" data-act="reverse" data-id="${p.id}">Reverse</button>` : ''}</td>` : '') + '</tr>').join('') || `<tr><td colspan="${cols}" class="muted">No receipts found.</td></tr>`) + '</table></div>';
+}
+const PAY_SHOW = 300;
+function payInfo(rows){ return `Showing ${Math.min(rows.length, PAY_SHOW)} of ${rows.length} receipt(s)`; }
+function updPaySel(){ const el = $('#paysel'); if(el) el.textContent = selPay.size + ' selected'; }
+function refreshPayList(){ const rows = payFiltered(); $('#paylist').innerHTML = payTable(rows.slice(0, PAY_SHOW), true, true); $('#paycount').textContent = payInfo(rows); }
+function pgPay(){
+  const from = pgPay.from || new Date().toISOString().slice(0, 8) + '01', to = pgPay.to || new Date().toISOString().slice(0, 10);
+  const inr = S.payments.filter(p => p.pay_date >= from && p.pay_date <= to), byCat = {}, byM = {};
+  inr.forEach(p => { byCat[p.category] = (byCat[p.category] || 0) + Number(p.signed_kobo); byM[p.method] = (byM[p.method] || 0) + Number(p.signed_kobo); });
+  const rows = payFiltered(), per = pgPay.pp || '1';
+  return `<div class="bar"><h2 style="margin:0;color:var(--navy)">Payments & receipts</h2><span class="sp"></span>${canWrite() ? '<button data-act="newpay">Record payment</button> <button class="alt" data-act="newrefund">Refund overpayment</button>' : ''}</div>
+  <div class="panel"><div class="bar"><input id="srch" placeholder="Search receipt / student…" value="${esc(pgPay.q || '')}" style="max-width:230px"><select id="pcl" style="max-width:150px"><option value="">All classes</option>${S.classes.map(c => `<option ${pgPay.cl === c.name ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select>
+  <label style="margin:0">From</label><input type="date" id="plf" value="${pgPay.lf || ''}"><label style="margin:0">To</label><input type="date" id="plt" value="${pgPay.lt || ''}"></div>
+  <div class="bar"><span class="muted" id="paycount">${payInfo(rows)}</span><span class="muted" id="paysel">${selPay.size} selected</span><span class="sp"></span>
+  <select id="ppp"><option value="1" ${per === '1' ? 'selected' : ''}>1 receipt per page</option><option value="2" ${per === '2' ? 'selected' : ''}>2 receipts per page</option></select>
+  <button class="alt" data-act="rcptsel">Print selected</button><button class="org" data-act="rcptall">Print all shown</button></div>
+  <div id="paylist">${payTable(rows.slice(0, PAY_SHOW), true, true)}</div><p class="muted">“Print all shown” prints every valid receipt matching the search, class and dates above. Tick boxes to print a hand-picked set. Reprinting records nothing.</p></div>
+  <div class="panel"><h2>Collection report</h2><div class="bar"><label style="margin:0">From</label><input type="date" id="cf" value="${from}"><label style="margin:0">To</label><input type="date" id="ct" value="${to}"><button class="alt" data-act="coll">Update</button></div>
+  <div class="g2"><div><b>By category</b><table>${Object.entries(byCat).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v)}</td></tr>`).join('')}</table></div>
+  <div><b>By method</b><table>${Object.entries(byM).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v)}</td></tr>`).join('')}</table></div></div>
+  <p><b>Total: ₦${fmt(inr.reduce((a, p) => a + Number(p.signed_kobo), 0))}</b> <span class="muted">(net of refunds and reversals)</span></p></div>`;
+}
+function pgStudents(){
+  const q = (pgStudents.q || '').toLowerCase(), cl = pgStudents.cl || '';
+  const rows = S.students.filter(s => (!cl || s.class_name === cl) && (!q || (s.admission_no + s.surname + s.first_name).toLowerCase().includes(q)));
+  return `<div class="bar"><h2 style="margin:0;color:var(--navy)">Students</h2><span class="sp"></span>${canWrite() ? '<button data-act="newstu">Add student</button>' : ''}</div>
+  <div class="panel"><div class="bar"><input id="sq" placeholder="Search name or admission no…" value="${esc(pgStudents.q || '')}" style="max-width:260px"><select id="sc" style="max-width:180px"><option value="">All classes</option>${S.classes.map(c => `<option ${cl === c.name ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}</select><span class="muted">${rows.length} students</span></div>
+  <div class="tw"><table><tr><th>Adm. no</th><th>Name</th><th>Class</th><th>Status</th><th class="num">Billed ₦</th><th class="num">Paid ₦</th><th class="num">Outstanding ₦</th></tr>${rows.map(s => { const b = balOf(s.id); return `<tr class="click" onclick="location.hash='#/student/${s.id}'"><td>${esc(s.admission_no)}</td><td>${esc(s.surname)}, ${esc(s.first_name)}</td><td>${esc(s.class_name)}</td><td>${s.status}</td><td class="num">${fmt(b.billed_kobo)}</td><td class="num">${fmt(b.paid_kobo)}</td><td class="num ${b.outstanding_kobo > 0 ? 'neg' : b.outstanding_kobo < 0 ? 'pos' : ''}">${fmt(b.outstanding_kobo)}</td></tr>`; }).join('')}</table></div></div>`;
+}
+function pgStatement(id){
+  const s = S.students.find(x => x.id === id); if(!s) return '<div class="panel">Student not found.</div>';
+  const b = balOf(id), inv = S.invoices.filter(i => i.student_id === id), pays = S.payments.filter(p => p.student_id === id).sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)));
+  const grp = {}; inv.forEach(i => { const k = i.session + '  ·  ' + i.term; grp[k] = (grp[k] || 0) + Number(i.net_kobo); });
+  const other = Number(b.billed_kobo) - inv.reduce((a, i) => a + Number(i.net_kobo), 0);
+  const lump = Object.entries(grp).sort((x, y) => x[0].localeCompare(y[0]));
+  return `<div class="bar"><a href="#/students">← Students</a><span class="sp"></span>${canWrite() ? `<button data-act="newpay" data-id="${id}">Record payment</button> ${b.advance_kobo > 0 ? `<button class="alt" data-act="newrefund" data-id="${id}">Refund credit</button>` : ''} <button class="alt" data-act="editstu" data-id="${id}">Edit</button>` : ''} <button class="org" onclick="window.print()">Print statement</button></div>
+  <div class="panel" id="print-area"><div class="rcpt" style="max-width:none;border-width:0;padding:0"><div class="brand"><div class="lg">NM</div><div><h2>${esc(S.school.name)}</h2><div class="muted">${esc(S.school.address)} ${esc(S.school.phone)}</div></div></div><div class="t">STUDENT FEE STATEMENT</div></div>
+  <p><b>${esc(s.surname)}, ${esc(s.first_name)}</b> · ${esc(s.admission_no)} · ${esc(s.class_name)} · Guardian: ${esc(s.guardian)} ${esc(s.phone)}</p>
+  <div class="cards"><div class="card"><span>Total fees</span><b>₦${fmt(b.billed_kobo)}</b></div><div class="card"><span>Paid (net)</span><b>₦${fmt(b.paid_kobo)}</b></div><div class="card"><span>${b.outstanding_kobo < 0 ? 'Credit' : 'Outstanding'}</span><b class="${b.outstanding_kobo > 0 ? 'neg' : 'pos'}">₦${fmt(Math.abs(b.outstanding_kobo))}</b></div></div>
+  <h2>Fees charged</h2><table><tr><th>Session / term</th><th class="num">Total fee ₦</th></tr>${lump.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v)}</td></tr>`).join('') || '<tr><td colspan=2 class="muted">No fees charged yet.</td></tr>'}${other !== 0 ? `<tr><td>Other charges on account</td><td class="num">${fmt(other)}</td></tr>` : ''}<tr><th>Total fees</th><th class="num">${fmt(b.billed_kobo)}</th></tr></table>
+  <h2 style="margin-top:14px">Payments received</h2><table><tr><th>Receipt</th><th>Date</th><th>Method</th><th class="num">Amount ₦</th><th>Status</th></tr>${pays.map(p => `<tr><td>${esc(p.receipt_no)}</td><td>${p.pay_date}</td><td>${esc(p.method)}</td><td class="num ${p.signed_kobo < 0 ? 'neg' : ''}">${fmt(p.signed_kobo)}</td><td><span class="tag ${p.status}">${p.status}</span></td></tr>`).join('') || '<tr><td colspan=5 class="muted">No payments yet.</td></tr>'}<tr><th colspan="3">Total paid (net)</th><th class="num">${fmt(b.paid_kobo)}</th><th></th></tr></table>
+  <p style="margin-top:12px"><b>${b.outstanding_kobo < 0 ? 'Credit on account' : 'Balance outstanding'}: ₦${fmt(Math.abs(b.outstanding_kobo))}</b></p></div>`;
+}
+function pgFees(){
+  const tab = pgFees.tab || 'fees';
+  const head = `<div class="bar"><h2 style="margin:0;color:var(--navy)">Fees & invoices</h2><span class="sp"></span><button class="${tab === 'fees' ? '' : 'alt'}" data-act="tab" data-t="fees">Fee schedule</button><button class="${tab === 'inv' ? '' : 'alt'}" data-act="tab" data-t="inv">Invoices</button></div>`;
+  if(tab === 'fees') return head + `<div class="panel">${canWrite() ? '<div class="bar"><button data-act="newfee">Add / change fee</button><button class="org" data-act="gen">Generate term invoices</button></div>' : ''}<div class="tw"><table><tr><th>Session</th><th>Term</th><th>Class</th><th>Category</th><th class="num">Amount ₦</th></tr>${S.fees.map(f => `<tr><td>${esc(f.session)}</td><td>${esc(f.term)}</td><td>${esc(f.class_name)}</td><td>${esc(f.category)}</td><td class="num">${fmt(f.amount_kobo)}</td></tr>`).join('') || '<tr><td colspan=5 class="muted">No fees yet. Add classes first (School Setup), then fees.</td></tr>'}</table></div></div>`;
+  return head + `<div class="panel">${canWrite() ? '<div class="bar"><button data-act="newinv">Add invoice line / discount / waiver / credit note</button></div>' : ''}<div class="tw"><table><tr><th>No</th><th>Date</th><th>Student</th><th>Session / term</th><th>Category</th><th class="num">Gross</th><th class="num">Disc.</th><th class="num">Waiver</th><th class="num">Net ₦</th></tr>${S.invoices.slice(0, 300).map(i => `<tr><td>${i.invoice_no}</td><td>${i.invoice_date}</td><td>${esc(stuName(i.student_id))}</td><td>${esc(i.session)} ${esc(i.term)}</td><td>${esc(i.category)}</td><td class="num">${fmt(i.gross_kobo)}</td><td class="num">${fmt(i.discount_kobo)}</td><td class="num">${fmt(i.waiver_kobo)}</td><td class="num">${fmt(i.net_kobo)}</td></tr>`).join('')}</table></div></div>`;
+}
+function pgSetup(){
+  const sc = S.school;
+  return `<div class="panel"><h2>School</h2><p><b>${esc(sc.name)}</b> · prefix <b>${esc(sc.receipt_prefix)}</b> · overpayments: <b>${sc.overpayment_policy}</b><br><span class="muted">${esc(sc.address)} ${esc(sc.phone)} ${esc(sc.email)}</span></p>${isOwner() ? '<button class="alt" data-act="editschool">Edit school details</button>' : ''}</div>
+  <div class="panel"><h2>Classes</h2>${canWrite() ? '<button data-act="newclass">Add class</button>' : ''}<div class="tw"><table><tr><th>Class</th><th>Level</th><th>Teacher</th><th class="num">Students</th></tr>${S.classes.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.level)}</td><td>${esc(c.class_teacher)}</td><td class="num">${S.students.filter(s => s.class_name === c.name && s.status === 'active').length}</td></tr>`).join('')}</table></div></div>
+  <div class="panel"><h2>Sessions & terms</h2>${canWrite() ? '<button data-act="newterm">Add term</button>' : ''}<table><tr><th>Session</th><th>Term</th><th>Start</th><th>End</th><th>Status</th></tr>${S.terms.map(t => `<tr><td>${esc(t.session)}</td><td>${t.term}</td><td>${t.start_date}</td><td>${t.end_date}</td><td>${t.status}</td></tr>`).join('')}</table></div>` + backupPanel();
+}
+function pgTeam(){
+  return `<div class="panel"><h2>Team</h2><p class="muted">Owner: everything. Bursar: records fees and payments. Teacher: read-only students and classes. Viewer: read-only everything except audit.</p>
+  <table><tr><th>Name</th><th>Role</th><th>Active</th></tr>${S.team.map(m => `<tr><td>${esc(m.full_name || m.id.slice(0, 8))}</td><td>${m.role}</td><td>${m.active ? 'Yes' : 'No'}</td></tr>`).join('')}</table>
+  ${isOwner() ? '<p><b>Add a team member</b> — they must first create an account on the sign-in page with the same email.</p><div class="g2"><div><label>Email</label><input id="te"></div><div><label>Role</label><select id="tr"><option>bursar</option><option>teacher</option><option>viewer</option><option>owner</option></select></div></div><p><button data-act="addmember">Add member</button></p>' : ''}</div>`;
+}
+
+/* ============================ forms / actions ============================ */
+const opt = (arr, sel) => arr.map(a => `<option ${a === sel ? 'selected' : ''}>${esc(a)}</option>`).join('');
+const today = () => new Date().toISOString().slice(0, 10);
+const stuOpts = (sel) => S.students.filter(s => s.status === 'active').map(s => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.admission_no)} — ${esc(s.surname)}, ${esc(s.first_name)} (${esc(s.class_name)})</option>`).join('');
+const val = id => $('#' + id).value;
+
+function payForm(sid){
+  modal(`<h3>Record payment</h3><label>Student</label><select id="f_s">${stuOpts(sid)}</select><div class="g2"><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div><div><label>Amount (₦)</label><input id="f_a" inputmode="decimal" placeholder="0.00"></div>
+  <div><label>Category</label><select id="f_c">${opt(CATS)}</select></div><div><label>Method</label><select id="f_m">${opt(METHODS)}</select></div></div><label>Note</label><input id="f_n">
+  <p id="f_hint" class="muted"></p><p><button data-act="savepay">Save & issue receipt</button> <button class="alt" data-act="close">Cancel</button></p>`);
+  const hint = () => { const b = balOf(val('f_s')); $('#f_hint').textContent = b.outstanding_kobo > 0 ? 'Currently owes ₦' + fmt(b.outstanding_kobo) : b.outstanding_kobo < 0 ? 'Has a credit of ₦' + fmt(-b.outstanding_kobo) : 'Account is fully paid'; };
+  $('#f_s').onchange = hint; hint();
+}
+async function savePay(){
+  const k = toKobo(val('f_a')); if(!k || k <= 0) return toast('Enter a valid amount');
+  const args = { p_client_ref: uuid(), p_date: val('f_d'), p_student_id: val('f_s'), p_category: val('f_c'), p_method: val('f_m'), p_amount_kobo: k, p_note: val('f_n') || null };
+  const stu = S.students.find(s => s.id === args.p_student_id);
+  const r = await write({ kind: 'rpc', fn: 'record_payment', args, label: `Payment ₦${fmt(k)} — ${stu.surname} ${stu.first_name} (${args.p_date})` });
+  if(!r.ok) return toast(r.error, 7000);
+  if(r.queued){ modal(`<h3>Saved on this device</h3><p>You are offline. The payment is stored safely and will be sent automatically. The official receipt number is assigned by the server when it syncs — <b>do not issue a final receipt yet</b>.</p><p><button data-act="close">OK</button></p>`); return; }
+  await loadAll(); showReceipt(r.data.id);
+}
+function receiptHTML(p){
+  const b = balOf(p.student_id), after = outstandingAfter(Number(b.billed_kobo), S.payments, p.student_id, p.created_at), sc = S.school;
+  const creditHeld = S.payments.filter(x => x.student_id === p.student_id && x.created_at <= p.created_at).reduce((a, x) => a + Number(x.advance_kobo), 0);
+  const title = p.entry_type === 'payment' ? 'OFFICIAL RECEIPT' : p.entry_type === 'refund' ? 'REFUND VOUCHER' : 'REVERSAL / CANCELLATION NOTICE';
+  return `<div class="rcpt"><div class="brand"><div class="lg">NM</div><div><h2>${esc(sc.name)}</h2><div class="muted">${esc(sc.address)} ${esc(sc.phone)} ${esc(sc.email)}</div></div></div><div class="t">${title}</div>
+  <table><tr><td>Receipt No</td><td><b>${esc(p.receipt_no)}</b></td></tr><tr><td>Date</td><td>${p.pay_date}</td></tr><tr><td>Received from</td><td>${esc(p.surname)}, ${esc(p.first_name)}</td></tr><tr><td>Admission No</td><td>${esc(p.admission_no)}</td></tr><tr><td>Class</td><td>${esc(p.class_name)}</td></tr>
+  <tr><td>Payment for</td><td>${esc(p.category)}</td></tr><tr><td>Method</td><td>${esc(p.method)}</td></tr><tr><td>Amount</td><td class="big">₦${fmt(p.amount_kobo)}</td></tr><tr><td></td><td class="muted"><i>${esc(nairaWords(p.amount_kobo))}</i></td></tr>
+  <tr><td>Outstanding balance</td><td><b>₦${fmt(Math.max(0, after))}</b></td></tr>${creditHeld > 0 ? `<tr><td>Credit held on account</td><td><b>₦${fmt(creditHeld)}</b></td></tr>` : ''}<tr><td>Status</td><td>${p.status}${p.reason ? ' — ' + esc(p.reason) : ''}</td></tr></table>
+  <p style="margin-top:20px;font-size:11px">Bursar's signature: ______________ &nbsp; Reprint of an existing receipt records nothing.</p></div>`;
+}
+function showReceipt(id){
+  const p = S.payments.find(x => x.id === id); if(!p) return toast('Receipt not found (refresh)');
+  modal(`<div id="print-area">${receiptHTML(p)}</div><p><button class="org" onclick="window.print()">Print</button> <button class="alt" data-act="close">Close</button></p>`);
+}
+function rcptActs(a, id, t){
+  if(a !== 'rcptsel' && a !== 'rcptall') return false;
+  const per = parseInt(($('#ppp') || {}).value || '1', 10); pgPay.pp = String(per);
+  let rows;
+  if(a === 'rcptsel'){ rows = S.payments.filter(p => selPay.has(p.id)); if(!rows.length){ toast('Tick the receipts you want to print first'); return true; } }
+  else { rows = payFiltered().filter(p => p.status === 'VALID'); if(!rows.length){ toast('No valid receipts match the filters'); return true; } if(rows.length > 100 && !confirm('Print ' + rows.length + ' receipts?')) return true; }
+  rows = [...rows].sort((x, y) => String(x.created_at).localeCompare(String(y.created_at)));
+  printDocs(rows.map(receiptHTML), per); return true;
+}
+function reverseForm(id){ const p = S.payments.find(x => x.id === id); modal(`<h3>Reverse receipt ${esc(p.receipt_no)}</h3><p>₦${fmt(p.amount_kobo)} from ${esc(p.surname)}, ${esc(p.first_name)}. A reversal entry is added; the original stays in the history.</p><label>Reason (required)</label><input id="f_r"><p><button class="bad" data-act="savereverse" data-id="${id}">Reverse</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveReverse(id){
+  const reason = val('f_r').trim(); if(!reason) return toast('A reason is required');
+  const r = await write({ kind: 'rpc', fn: 'reverse_payment', args: { p_client_ref: uuid(), p_payment_id: id, p_reason: reason, p_date: today() }, label: 'Reversal: ' + reason });
+  if(!r.ok) return toast(r.error, 7000); closeModal(); toast(r.queued ? 'Saved offline — will sync' : 'Reversal recorded');
+}
+function refundForm(sid){ modal(`<h3>Refund overpayment</h3><label>Student</label><select id="f_s">${S.students.filter(s => balOf(s.id).advance_kobo > 0).map(s => `<option value="${s.id}" ${s.id === sid ? 'selected' : ''}>${esc(s.admission_no)} ${esc(s.surname)} — credit ₦${fmt(balOf(s.id).advance_kobo)}</option>`).join('') || '<option value="">No student has a credit</option>'}</select>
+  <div class="g2"><div><label>Amount (₦)</label><input id="f_a" inputmode="decimal"></div><div><label>Method</label><select id="f_m">${opt(METHODS)}</select></div></div><label>Reason (required)</label><input id="f_r"><p><button data-act="saverefund">Refund</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveRefund(){
+  const k = toKobo(val('f_a')); if(!val('f_s') || !k || k <= 0) return toast('Choose a student and valid amount'); if(!val('f_r').trim()) return toast('A reason is required');
+  const r = await write({ kind: 'rpc', fn: 'refund_overpayment', args: { p_client_ref: uuid(), p_date: today(), p_student_id: val('f_s'), p_method: val('f_m'), p_amount_kobo: k, p_reason: val('f_r').trim() }, label: 'Refund ₦' + fmt(k) });
+  if(!r.ok) return toast(r.error, 7000); closeModal(); await loadAll(); toast(r.queued ? 'Saved offline — will sync' : 'Refund recorded');
+}
+function stuForm(id){
+  const s = id ? S.students.find(x => x.id === id) : { status: 'active', admission_date: today() };
+  modal(`<h3>${id ? 'Edit' : 'Add'} student</h3><div class="g2"><div><label>Admission no</label><input id="f_ad" value="${esc(s.admission_no)}" ${id ? 'readonly' : ''}></div><div><label>Class</label><select id="f_cl">${opt(S.classes.map(c => c.name), s.class_name)}</select></div>
+  <div><label>Surname</label><input id="f_sn" value="${esc(s.surname)}"></div><div><label>First name</label><input id="f_fn" value="${esc(s.first_name)}"></div>
+  <div><label>Gender</label><select id="f_g"><option></option>${opt(['Male', 'Female'], s.gender)}</select></div><div><label>Date of birth</label><input type="date" id="f_dob" value="${s.date_of_birth || ''}"></div>
+  <div><label>Parent / guardian</label><input id="f_gu" value="${esc(s.guardian)}"></div><div><label>Phone</label><input id="f_ph" value="${esc(s.phone)}"></div>
+  <div><label>Status</label><select id="f_st">${opt(['active', 'graduated', 'withdrawn'], s.status)}</select></div></div><p><button data-act="savestu" data-id="${id || ''}">Save</button> <button class="alt" data-act="close">Cancel</button></p>`);
+}
+async function saveStu(id){
+  const row = { surname: val('f_sn').trim(), first_name: val('f_fn').trim(), gender: val('f_g') || null, date_of_birth: val('f_dob') || null, class_name: val('f_cl') || null, guardian: val('f_gu'), phone: val('f_ph'), status: val('f_st') };
+  if(!row.surname || !row.first_name) return toast('Name required');
+  let r;
+  if(id) r = await write({ kind: 'update', table: 'students', id, row, label: 'Edit student ' + row.surname });
+  else { const ad = val('f_ad').trim(); if(!ad) return toast('Admission number required'); if(S.students.some(s => s.admission_no === ad)) return toast('Admission number already exists');
+    r = await write({ kind: 'insert', table: 'students', row: { ...row, id: uuid(), school_id: S.profile.school_id, admission_no: ad, admission_date: today() }, label: 'New student ' + row.surname }); }
+  if(!r.ok) return toast(r.error, 6000); closeModal(); toast(r.queued ? 'Saved offline — will sync' : 'Saved'); if(r.queued) { /* optimistic */ } else await loadAll();
+}
+function feeForm(){ modal(`<h3>Add / change a fee</h3><div class="g2"><div><label>Session</label><input id="f_se" placeholder="2026/2027" value="${esc((S.terms[0] || {}).session || '')}"></div><div><label>Term</label><select id="f_t">${opt(['Term 1', 'Term 2', 'Term 3'])}</select></div>
+  <div><label>Class</label><select id="f_cl">${opt(S.classes.map(c => c.name))}</select></div><div><label>Category</label><select id="f_c">${opt(CATS)}</select></div><div><label>Amount (₦)</label><input id="f_a" inputmode="decimal"></div></div>
+  <p class="muted">Items sold from stock (uniforms, books) belong to the Stock module (stage 2), not here.</p><p><button data-act="savefee">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveFee(){
+  const k = toKobo(val('f_a')); if(k === null || k < 0 || !val('f_se').trim()) return toast('Complete the form');
+  const row = { school_id: S.profile.school_id, session: val('f_se').trim(), term: val('f_t'), class_name: val('f_cl'), category: val('f_c'), amount_kobo: k };
+  const ex = S.fees.find(f => f.session === row.session && f.term === row.term && f.class_name === row.class_name && f.category === row.category);
+  const r = ex ? await write({ kind: 'update', table: 'fee_schedule', id: ex.id, row: { amount_kobo: k }, label: 'Change fee' }) : await write({ kind: 'insert', table: 'fee_schedule', row, label: 'New fee' });
+  if(!r.ok) return toast(r.error, 6000); closeModal(); if(!r.queued) await loadAll(); toast('Saved');
+}
+function genForm(){ const sess = [...new Set(S.fees.map(f => f.session))]; modal(`<h3>Generate term invoices</h3><p class="muted">Creates one invoice line per fee for every active student in the class. Students already invoiced for that fee are skipped, so running it twice is safe.</p>
+  <div class="g2"><div><label>Session</label><select id="f_se">${opt(sess)}</select></div><div><label>Term</label><select id="f_t">${opt(['Term 1', 'Term 2', 'Term 3'])}</select></div><div><label>Class</label><select id="f_cl"><option value="*">All classes</option>${opt(S.classes.map(c => c.name))}</select></div><div><label>Invoice date</label><input type="date" id="f_d" value="${today()}"></div></div>
+  <p><button data-act="savegen">Generate</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveGen(){
+  if(!online()) return toast('Generating invoices needs an internet connection');
+  const cls = val('f_cl') === '*' ? S.classes.map(c => c.name) : [val('f_cl')]; let n = 0;
+  for(const c of cls){ const { data, error } = await sb.rpc('generate_invoices', { p_session: val('f_se'), p_term: val('f_t'), p_class: c, p_date: val('f_d') }); if(error) return toast(error.message, 7000); n += data; }
+  closeModal(); await loadAll(); toast(n + ' invoice lines created');
+}
+function invForm(){ modal(`<h3>Invoice line / adjustment</h3><label>Student</label><select id="f_s">${stuOpts()}</select><div class="g2"><div><label>Session</label><input id="f_se" value="${esc((S.terms[0] || {}).session || '')}"></div><div><label>Term</label><select id="f_t">${opt(['Term 1', 'Term 2', 'Term 3'])}</select></div>
+  <div><label>Category</label><select id="f_c">${opt(CATS)}</select></div><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div><div><label>Amount (₦)</label><input id="f_a" inputmode="decimal"></div><div><label>Type</label><select id="f_lt"><option value="invoice">Invoice</option><option value="credit_note">Credit note</option></select></div>
+  <div><label>Discount (₦)</label><input id="f_di" inputmode="decimal"></div><div><label>Waiver (₦)</label><input id="f_w" inputmode="decimal"></div></div><label>Waiver approved by (required for a waiver)</label><input id="f_wb"><label>Note</label><input id="f_n">
+  <p><button data-act="saveinv">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveInv(){
+  if(!online()) return toast('Needs an internet connection');
+  let g = toKobo(val('f_a')); if(g === null) return toast('Enter the amount'); const ct = val('f_lt') === 'credit_note'; if(ct && g > 0) g = -g;
+  const { error } = await sb.rpc('add_invoice', { p_student_id: val('f_s'), p_date: val('f_d'), p_session: val('f_se'), p_term: val('f_t'), p_category: val('f_c'), p_gross_kobo: g, p_discount_kobo: toKobo(val('f_di')) || 0, p_waiver_kobo: toKobo(val('f_w')) || 0, p_waiver_by: val('f_wb') || null, p_note: val('f_n') || null, p_line_type: val('f_lt') });
+  if(error) return toast(error.message, 7000); closeModal(); await loadAll(); toast('Invoice line saved');
+}
+function simpleInsert(title, fields, table, build){
+  modal(`<h3>${title}</h3>${fields}<p><button data-act="savesimple">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); simpleInsert.t = table; simpleInsert.b = build;
+}
+async function saveSimple(){
+  const row = simpleInsert.b(); if(!row) return; row.id = uuid(); row.school_id = S.profile.school_id;
+  const r = await write({ kind: 'insert', table: simpleInsert.t, row, label: 'New ' + simpleInsert.t }); if(!r.ok) return toast(r.error, 6000); closeModal(); if(!r.queued) await loadAll(); toast('Saved');
+}
+
+/* ===================== STAGE 2: payroll, loans, expenses, stock ===================== */
+const EXPCATS = ['Utilities','Rent and Rates','Stationery and Supplies','Repairs and Maintenance','Transport and Fuel','Administration','Bank Charges','Staff Welfare','Marketing','Training and Development'];
+const monthLabel = m => new Date(m + 'T00:00:00').toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+const staffName = id => { const s = S.staff.find(x => x.id === id); return s ? `${s.surname}, ${s.first_name}` : '?'; };
+const stfOpts = sel => S.staff.filter(s => s.status === 'active').map(s => `<option value="${s.id}" ${s.id === sel ? 'selected' : ''}>${esc(s.staff_no)} — ${esc(s.surname)}, ${esc(s.first_name)}</option>`).join('');
+const itemOpts = sel => S.itemStock.map(i => `<option value="${i.item_id}" ${i.item_id === sel ? 'selected' : ''}>${esc(i.code)} — ${esc(i.name)} (stock ${i.balance})</option>`).join('');
+const needOnline = () => { if(online()) return true; toast('This action needs an internet connection'); return false; };
+const tabBar = (title, cur, tabs, act) => `<div class="bar"><h2 style="margin:0;color:var(--navy)">${title}</h2><span class="sp"></span>${tabs.map(([k, t]) => `<button class="${cur === k ? '' : 'alt'}" data-act="${act}" data-t="${k}">${t}</button>`).join('')}</div>`;
+
+function pgPayroll(){
+  const tab = pgPayroll.tab || 'run';
+  const head = tabBar('Payroll & staff', tab, [['run', 'Monthly payroll'], ['staff', 'Staff & salaries'], ['loans', 'Loans & advances']], 'prtab');
+  if(!S.staff.length && !canWrite()) return head + '<div class="panel">You do not have access to payroll.</div>';
+  if(tab === 'staff'){
+    return head + `<div class="panel">${canWrite() ? '<div class="bar"><button data-act="newstaff">Add staff</button></div>' : ''}<div class="tw"><table><tr><th>Staff no</th><th>Name</th><th>Position</th><th>Email</th><th class="num">Gross / month ₦</th><th>Status</th><th></th></tr>${S.staff.map(s => { const sl = S.salary.find(x => x.staff_id === s.id); const g = sl ? Number(sl.basic_kobo) + Number(sl.housing_kobo) + Number(sl.transport_kobo) + Number(sl.other_allowance_kobo) : 0;
+      return `<tr><td>${esc(s.staff_no)}</td><td>${esc(s.surname)}, ${esc(s.first_name)}</td><td>${esc(s.position)}</td><td>${s.email ? esc(s.email) : '<span class="muted">—</span>'}</td><td class="num">${sl ? fmt(g) : '<span class="muted">no salary set</span>'}</td><td>${s.status}</td><td>${canWrite() ? `<button class="alt" data-act="editstaff" data-id="${s.id}">Edit</button>` : ''}</td></tr>`; }).join('')}</table></div></div>`;
+  }
+  if(tab === 'loans'){
+    return head + `<div class="panel"><h2>Outstanding by staff</h2><div class="tw"><table><tr><th>Staff</th><th class="num">Issued ₦</th><th class="num">Repaid ₦</th><th class="num">Outstanding ₦</th><th class="num">Monthly instalment ₦</th></tr>${S.loanBal.filter(b => Number(b.issued_kobo) > 0).map(b => `<tr><td>${esc(b.surname)}, ${esc(b.first_name)}</td><td class="num">${fmt(b.issued_kobo)}</td><td class="num">${fmt(b.repaid_kobo)}</td><td class="num ${b.outstanding_kobo > 0 ? 'neg' : ''}">${fmt(b.outstanding_kobo)}</td><td class="num">${fmt(b.active_instalment_kobo)}</td></tr>`).join('') || '<tr><td colspan=5 class="muted">No loans.</td></tr>'}</table></div></div>
+    <div class="panel"><h2>Loans & advances issued</h2>${isOwner() ? '<div class="bar"><button data-act="newloan">Issue loan / advance</button><span class="muted">Only the owner approves and issues.</span></div>' : ''}<div class="tw"><table><tr><th>No</th><th>Date</th><th>Staff</th><th>Type</th><th class="num">Amount ₦</th><th class="num">Monthly ₦</th><th>Approved by</th><th>Status</th></tr>${S.loans.map(l => `<tr><td>${l.loan_no}</td><td>${l.issue_date}</td><td>${esc(staffName(l.staff_id))}</td><td>${l.kind}</td><td class="num">${fmt(l.amount_kobo)}</td><td class="num">${fmt(l.monthly_kobo)}</td><td>${esc(l.approved_name)}</td><td>${l.status}</td></tr>`).join('')}</table></div></div>`;
+  }
+  const months = [...new Set(S.payroll.map(l => l.month))].sort().reverse();
+  const month = curPayMonth(), rows = curRows();
+  const sum = f => rows.reduce((a, l) => a + Number(f(l)), 0);
+  const stat = l => l.paid ? '<span class="tag VALID">PAID</span>' : l.status === 'approved' ? '<span class="tag REFUND">APPROVED</span>' : '<span class="tag pend">DRAFT</span>';
+  const blocked = rows.filter(l => l.status === 'draft' && l.limit_status === 'BLOCKED').length, per = pgPayroll.pp || '2';
+  return head + `<div class="panel"><div class="bar"><label style="margin:0">Month</label><input type="month" id="pm" value="${month.slice(0, 7)}" style="width:auto"><span class="sp"></span>
+    ${canWrite() ? '<button data-act="prgen">Calculate / refresh</button>' : ''}${isOwner() ? ' <button class="org" data-act="prapprove">Approve payroll</button>' : ''}${canWrite() ? ' <button class="alt" data-act="prpaid">Mark paid</button>' : ''}</div>
+    ${blocked ? `<p class="neg"><b>${blocked} line(s) BLOCKED</b> — loan + other deductions exceed the limit. The owner can authorise an override on the line, or reduce the deduction.</p>` : ''}
+    <div class="bar" style="background:var(--tint);padding:8px;border-radius:8px"><b style="color:var(--navy)">Payslips</b><span class="muted" id="slipsel">${selSlip.size} selected</span><span class="sp"></span>
+      <select id="spp"><option value="1" ${per === '1' ? 'selected' : ''}>1 payslip per page</option><option value="2" ${per === '2' ? 'selected' : ''}>2 payslips per page</option></select>
+      <button class="alt" data-act="slipprintsel">Print selected</button><button class="alt" data-act="slipprintall">Print all</button><button class="alt" data-act="slipmailsel">Email selected</button><button class="org" data-act="slipmailall">Email all</button></div>
+    <div class="tw"><table><tr><th style="width:28px"><input type="checkbox" id="chkall-slip" title="Select all"></th><th>Staff</th><th class="num">Gross</th><th class="num">Pension</th><th class="num">PAYE</th><th class="num">Loan</th><th class="num">Other</th><th class="num">Net ₦</th><th>Check</th><th>Status</th><th></th></tr>
+    ${rows.map(l => `<tr><td><input type="checkbox" class="chk-slip" data-id="${l.id}" ${selSlip.has(l.id) ? 'checked' : ''}></td><td>${esc(l.surname)}, ${esc(l.first_name)}</td><td class="num">${fmt(l.gross_kobo)}</td><td class="num">${fmt(l.pension_emp_kobo)}</td><td class="num">${fmt(l.paye_kobo)}</td><td class="num">${fmt(l.loan_kobo)}</td><td class="num">${fmt(Number(l.other_fixed_kobo) + Number(l.extra_kobo))}</td><td class="num"><b>${fmt(l.net_kobo)}</b></td><td><span class="tag ${l.limit_status === 'BLOCKED' ? 'CANCELLED' : l.limit_status === 'OVERRIDE' ? 'pend' : 'VALID'}">${l.limit_status}</span></td><td>${stat(l)}</td><td><button class="alt" data-act="payslip" data-id="${l.id}">Payslip</button>${canWrite() && l.status === 'draft' ? ` <button class="alt" data-act="pradj" data-id="${l.id}">Adjust</button>` : ''}</td></tr>`).join('') || '<tr><td colspan=11 class="muted">No payroll for this month yet. Press “Calculate / refresh”.</td></tr>'}
+    ${rows.length ? `<tr><th></th><th>Total</th><th class="num">${fmt(sum(l => l.gross_kobo))}</th><th class="num">${fmt(sum(l => l.pension_emp_kobo))}</th><th class="num">${fmt(sum(l => l.paye_kobo))}</th><th class="num">${fmt(sum(l => l.loan_kobo))}</th><th class="num">${fmt(sum(l => Number(l.other_fixed_kobo) + Number(l.extra_kobo)))}</th><th class="num">${fmt(sum(l => l.net_kobo))}</th><th></th><th></th><th></th></tr>` : ''}</table></div>
+    <p class="muted">Employer pension (not deducted): ₦${fmt(sum(l => l.pension_er_kobo))}. Approved payroll is final. Bulk print and email use approved lines only. Rates and tax bands: Nigeria Tax Act 2025 defaults — confirm with your tax adviser.</p></div>`;
+}
+function curPayMonth(){ const months = [...new Set(S.payroll.map(l => l.month))].sort().reverse(); return pgPayroll.month || months[0] || new Date().toISOString().slice(0, 7) + '-01'; }
+function curRows(){ const m = curPayMonth(); return S.payroll.filter(l => l.month === m).sort((a, b) => String(a.staff_no).localeCompare(String(b.staff_no))); }
+const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || '').trim());
+function payslipHTML(l){
+  const sc = S.school, oth = Number(l.other_fixed_kobo) + Number(l.extra_kobo);
+  return `<div class="rcpt"><div class="brand"><div class="lg">NM</div><div><h2>${esc(sc.name)}</h2><div class="muted">${esc(sc.address)}</div></div></div><div class="t">PAYSLIP — ${esc(monthLabel(l.month).toUpperCase())}</div>
+  <table><tr><td>Name</td><td><b>${esc(l.surname)}, ${esc(l.first_name)}</b> (${esc(l.staff_no)})</td></tr><tr><td>Position</td><td>${esc(l.position)}</td></tr><tr><td>Bank / account</td><td>${esc(l.bank)} ${esc(l.account_no)}</td></tr></table>
+  <table style="margin-top:8px"><tr><td>Basic</td><td class="num">${fmt(l.basic_kobo)}</td></tr><tr><td>Housing</td><td class="num">${fmt(l.housing_kobo)}</td></tr><tr><td>Transport</td><td class="num">${fmt(l.transport_kobo)}</td></tr><tr><td>Other allowance</td><td class="num">${fmt(l.other_allow_kobo)}</td></tr><tr><td><b>Gross pay</b></td><td class="num"><b>${fmt(l.gross_kobo)}</b></td></tr>
+  <tr><td>Employee pension</td><td class="num">-${fmt(l.pension_emp_kobo)}</td></tr><tr><td>PAYE tax</td><td class="num">-${fmt(l.paye_kobo)}</td></tr><tr><td>Loan / advance repayment</td><td class="num">-${fmt(l.loan_kobo)}</td></tr><tr><td>Other deductions</td><td class="num">-${fmt(oth)}</td></tr>
+  <tr><td class="big">NET PAY ₦</td><td class="num big">${fmt(l.net_kobo)}</td></tr></table><p class="muted"><i>${esc(nairaWords(l.net_kobo))}</i><br>Status: ${l.paid ? 'Paid ' + l.paid_date : l.status}${l.limit_status === 'OVERRIDE' ? ' · deduction override authorised by ' + esc(l.override_by) : ''}</p></div>`;
+}
+function payslip(id){
+  const l = S.payroll.find(x => x.id === id), final = l.status !== 'draft';
+  modal(`<div id="print-area">${payslipHTML(l)}</div><p><button class="org" onclick="window.print()">Print</button> <button class="alt" data-act="slipmail" data-id="${id}" ${final ? '' : 'disabled title="Approve the payroll first"'}>Email to teacher</button> <button class="alt" data-act="close">Close</button></p>${final ? '' : '<p class="muted">This payslip is still a draft. Emailing and bulk printing become available after the payroll is approved.</p>'}`);
+}
+function slipMailto(l){
+  const sc = S.school, oth = Number(l.other_fixed_kobo) + Number(l.extra_kobo), m = monthLabel(l.month), n = x => '₦' + fmt(x);
+  const subject = `Payslip for ${m} - ${sc.name}`;
+  const body = [`Dear ${l.first_name},`, '', `Your payslip for ${m} from ${sc.name}:`, '', `Basic: ${n(l.basic_kobo)}`, `Housing: ${n(l.housing_kobo)}`, `Transport: ${n(l.transport_kobo)}`, `Other allowance: ${n(l.other_allow_kobo)}`, `GROSS PAY: ${n(l.gross_kobo)}`, '',
+    `Employee pension: -${n(l.pension_emp_kobo)}`, `PAYE tax: -${n(l.paye_kobo)}`, `Loan / advance repayment: -${n(l.loan_kobo)}`, `Other deductions: -${n(oth)}`, '', `NET PAY: ${n(l.net_kobo)}`, `Paid to: ${l.bank || ''} ${l.account_no || ''}`.trim(), '', 'Please contact the accounts office if anything looks wrong.', '', `${sc.name} - Accounts Office`].join('\n');
+  return 'mailto:' + String(l.email).trim() + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+}
+function openMail(l){ mailed.add(l.id); window.location.href = slipMailto(l); }
+function mailModal(ids){
+  mailModal.ids = ids; const ls = ids.map(i => S.payroll.find(x => x.id === i)).filter(Boolean);
+  modal(`<h3>Email payslips</h3><p class="muted">Each button opens your email app with the payslip already written for that teacher — press Send there. (A browser app cannot send email silently. To attach a PDF, use Print → Save as PDF first.)</p>
+  <div class="tw" style="max-height:48vh"><table><tr><th>Teacher</th><th>Email</th><th></th></tr>${ls.map(l => `<tr><td>${esc(l.surname)}, ${esc(l.first_name)}</td><td>${validEmail(l.email) ? esc(l.email) : '<span class="neg">no email — add it under Staff & salaries</span>'}</td><td>${validEmail(l.email) ? `<button class="${mailed.has(l.id) ? 'alt' : 'org'}" data-act="mailone" data-id="${l.id}">${mailed.has(l.id) ? 'Opened ✓ — again' : 'Open email'}</button>` : ''}</td></tr>`).join('')}</table></div>
+  <p><button data-act="mailnext">Open next unsent</button> <button class="alt" data-act="close">Close</button></p>`);
+}
+function slipTargets(mode){
+  const rows = curRows(), sel = mode === 'sel' ? rows.filter(l => selSlip.has(l.id)) : rows;
+  if(!sel.length){ toast(mode === 'sel' ? 'Tick the payslips you want first' : 'No payroll for this month'); return null; }
+  const ok = sel.filter(l => l.status !== 'draft'); if(!ok.length){ toast('These lines are still drafts. Approve the payroll first.', 6000); return null; }
+  if(ok.length < sel.length) toast((sel.length - ok.length) + ' draft line(s) skipped — approve the payroll first', 5000);
+  return ok;
+}
+function slipActs(a, id){
+  const per = parseInt(($('#spp') || {}).value || pgPayroll.pp || '2', 10); if($('#spp')) pgPayroll.pp = String(per);
+  if(a === 'slipprintsel' || a === 'slipprintall'){ const ok = slipTargets(a === 'slipprintsel' ? 'sel' : 'all'); if(ok) printDocs(ok.map(payslipHTML), per); return true; }
+  if(a === 'slipmailsel' || a === 'slipmailall'){ const ok = slipTargets(a === 'slipmailsel' ? 'sel' : 'all'); if(ok) mailModal(ok.map(l => l.id)); return true; }
+  if(a === 'slipmail'){ const l = S.payroll.find(x => x.id === id); if(!validEmail(l.email)){ toast('No email address for this teacher — add it under Staff & salaries', 6000); return true; } openMail(l); return true; }
+  if(a === 'mailone'){ const l = S.payroll.find(x => x.id === id); openMail(l); setTimeout(() => mailModal(mailModal.ids), 300); return true; }
+  if(a === 'mailnext'){ const l = (mailModal.ids || []).map(i => S.payroll.find(x => x.id === i)).find(x => x && validEmail(x.email) && !mailed.has(x.id)); if(!l){ toast('All payslips with an email address have been opened'); return true; } openMail(l); setTimeout(() => mailModal(mailModal.ids), 300); return true; }
+  return false;
+}
+function staffForm(id){
+  const s = id ? S.staff.find(x => x.id === id) : { status: 'active' }, sl = id ? (S.salary.find(x => x.staff_id === id) || {}) : {}, k = v => v ? fmt(v) : '';
+  modal(`<h3>${id ? 'Edit' : 'Add'} staff</h3><div class="g2"><div><label>Staff no</label><input id="f_no" value="${esc(s.staff_no)}" ${id ? 'readonly' : ''}></div><div><label>Position</label><input id="f_po" value="${esc(s.position)}"></div>
+  <div><label>Surname</label><input id="f_sn" value="${esc(s.surname)}"></div><div><label>First name</label><input id="f_fn" value="${esc(s.first_name)}"></div><div><label>Department</label><input id="f_de" value="${esc(s.department)}"></div><div><label>Status</label><select id="f_st">${opt(['active', 'inactive'], s.status)}</select></div>
+  <div><label>Bank</label><input id="f_bk" value="${esc(s.bank)}"></div><div><label>Account no</label><input id="f_ac" value="${esc(s.account_no)}"></div><div style="grid-column:1/-1"><label>Email (payslips are mailed here)</label><input id="f_em" type="email" value="${esc(s.email)}"></div></div>
+  ${isOwner() ? `<h3 style="margin-top:12px">Monthly salary (₦) — owner only</h3><div class="g2"><div><label>Basic</label><input id="f_b" inputmode="decimal" value="${k(sl.basic_kobo)}"></div><div><label>Housing</label><input id="f_h" inputmode="decimal" value="${k(sl.housing_kobo)}"></div><div><label>Transport</label><input id="f_t" inputmode="decimal" value="${k(sl.transport_kobo)}"></div><div><label>Other allowance</label><input id="f_o" inputmode="decimal" value="${k(sl.other_allowance_kobo)}"></div>
+  <div><label>Fixed deduction (e.g. cooperative)</label><input id="f_fd" inputmode="decimal" value="${k(sl.other_fixed_deduction_kobo)}"></div><div><label>Annual rent paid (rent relief)</label><input id="f_rn" inputmode="decimal" value="${k(sl.annual_rent_kobo)}"></div></div>` : ''}
+  <p><button data-act="savestaff" data-id="${id || ''}">Save</button> <button class="alt" data-act="close">Cancel</button></p>`);
+}
+async function saveStaff(id){
+  const row = { surname: val('f_sn').trim(), first_name: val('f_fn').trim(), position: val('f_po'), department: val('f_de'), status: val('f_st'), bank: val('f_bk'), account_no: val('f_ac'), email: val('f_em').trim() };
+  if(!row.surname || !row.first_name) return toast('Name required');
+  if(row.email && !validEmail(row.email)) return toast('That email address does not look right');
+  const sid = id || uuid();
+  if(id){ const r = await write({ kind: 'update', table: 'staff', id, row, label: 'Edit staff' }); if(!r.ok) return toast(r.error, 6000); }
+  else { const no = val('f_no').trim(); if(!no) return toast('Staff number required'); if(S.staff.some(s => s.staff_no === no)) return toast('Staff number exists');
+    const r = await write({ kind: 'insert', table: 'staff', row: { ...row, id: sid, school_id: S.profile.school_id, staff_no: no }, label: 'New staff ' + row.surname }); if(!r.ok) return toast(r.error, 6000); }
+  if(isOwner()){
+    const m = x => (toKobo(val(x) || '0') ?? 0); const sal = { basic_kobo: m('f_b'), housing_kobo: m('f_h'), transport_kobo: m('f_t'), other_allowance_kobo: m('f_o'), other_fixed_deduction_kobo: m('f_fd'), annual_rent_kobo: m('f_rn') };
+    const ex = S.salary.find(x => x.staff_id === sid);
+    const r = ex ? await write({ kind: 'update', table: 'salary_structure', id: ex.id, row: sal, label: 'Salary update' }) : await write({ kind: 'insert', table: 'salary_structure', row: { ...sal, id: uuid(), school_id: S.profile.school_id, staff_id: sid }, label: 'Salary set' });
+    if(!r.ok) return toast(r.error, 6000);
+  }
+  closeModal(); toast('Saved'); if(online()) await loadAll();
+}
+function loanForm(){ modal(`<h3>Issue loan / advance</h3><label>Staff</label><select id="f_s">${stfOpts()}</select><div class="g2"><div><label>Type</label><select id="f_k"><option value="loan">Loan</option><option value="advance">Salary advance</option></select></div><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div>
+  <div><label>Amount (₦)</label><input id="f_a" inputmode="decimal"></div><div><label>Monthly repayment (₦)</label><input id="f_m" inputmode="decimal"></div><div><label>First repayment month</label><input type="month" id="f_fm" value="${today().slice(0, 7)}"></div><div><label>Paid from</label><select id="f_pm">${opt(METHODS, 'Bank Transfer')}</select></div></div>
+  <p class="muted">Repayments are deducted automatically by payroll, never exceeding the balance. Approval is recorded in your name.</p><p><button data-act="saveloan">Issue</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveLoan(){
+  const a = toKobo(val('f_a')), m = toKobo(val('f_m')); if(!a || a <= 0 || !m || m <= 0) return toast('Enter amount and monthly repayment');
+  const r = await write({ kind: 'rpc', fn: 'issue_loan', args: { p_client_ref: uuid(), p_staff_id: val('f_s'), p_date: val('f_d'), p_kind: val('f_k'), p_amount_kobo: a, p_monthly_kobo: m, p_first_month: val('f_fm') + '-01', p_method: val('f_pm') }, label: 'Loan ₦' + fmt(a) });
+  if(!r.ok) return toast(r.error, 7000); closeModal(); if(!r.queued) await loadAll(); toast(r.queued ? 'Saved offline — will sync' : 'Loan issued');
+}
+function adjForm(id){ const l = S.payroll.find(x => x.id === id); modal(`<h3>Adjust payroll — ${esc(l.surname)}, ${esc(l.first_name)}</h3><p class="muted">Loan ₦${fmt(l.loan_kobo)} · fixed deduction ₦${fmt(l.other_fixed_kobo)} · check: <b>${l.limit_status}</b></p><label>Extra deduction this month (₦)</label><input id="f_x" inputmode="decimal" value="${Number(l.extra_kobo) ? fmt(l.extra_kobo) : ''}">
+  ${isOwner() ? `<label><input type="checkbox" id="f_ov" style="width:auto" ${l.override_by ? 'checked' : ''}> Authorise deduction-limit override (recorded in my name)</label>` : '<p class="muted">Only the owner can authorise an override.</p>'}<p><button data-act="saveadj" data-id="${id}">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+
+function pgExpenses(){
+  const f = pgExpenses.f || '', cat = pgExpenses.cat || '', so = pgExpenses.so || 'date_desc';
+  const paid = new Set(S.expPay.map(p => p.expense_id));
+  const ci = c => { const i = EXPCATS.indexOf(c); return i < 0 ? 99 : i; };
+  const byDate = (a, b) => String(b.expense_date).localeCompare(String(a.expense_date)) || String(b.expense_no).localeCompare(String(a.expense_no));
+  const SORTS = { date_desc: ['Newest first', byDate], date_asc: ['Oldest first', (a, b) => byDate(b, a)], category: ['Category', (a, b) => ci(a.category) - ci(b.category) || byDate(a, b)],
+    amount_desc: ['Largest amount first', (a, b) => Number(b.amount_kobo) - Number(a.amount_kobo)], amount_asc: ['Smallest amount first', (a, b) => Number(a.amount_kobo) - Number(b.amount_kobo)],
+    payee: ['Payee A–Z', (a, b) => String(a.payee).localeCompare(String(b.payee)) || byDate(a, b)], status: ['Status', (a, b) => String(a.status).localeCompare(String(b.status)) || byDate(a, b)] };
+  const base = S.expenses.filter(e => !f || e.status === f), rows = base.filter(e => !cat || e.category === cat).sort(SORTS[so][1]);
+  const appr = a => a.filter(e => e.status === 'approved').reduce((x, e) => x + Number(e.amount_kobo), 0);
+  const rowHTML = e => `<tr><td>${e.expense_no}</td><td>${e.expense_date}</td><td>${esc(e.category)}</td><td>${esc(e.payee)}<br><span class="muted">${esc(e.description)}</span></td><td class="num">${fmt(e.amount_kobo)}</td><td>${e.pay_mode}${e.pay_mode === 'Credit' && e.status === 'approved' ? (paid.has(e.id) ? ' · <b>settled</b>' : ' · <span class="neg">unpaid</span>') : ''}</td><td>${esc(e.doc_ref) || '<span class="neg">none</span>'}</td><td><span class="tag ${e.status === 'approved' ? 'VALID' : e.status === 'rejected' ? 'CANCELLED' : 'pend'}">${e.status}</span>${e.voucher_no ? '<br>' + e.voucher_no : ''}</td>
+  <td>${isOwner() && e.status === 'pending' ? `<button data-act="exapp" data-id="${e.id}">Approve</button> <button class="alt" data-act="exrej" data-id="${e.id}">Reject</button>` : ''}${e.status === 'approved' ? `<button class="alt" data-act="voucher" data-id="${e.id}">Voucher</button>` : ''}${canWrite() && e.pay_mode === 'Credit' && e.status === 'approved' && !paid.has(e.id) ? ` <button class="alt" data-act="exsettle" data-id="${e.id}">Settle</button>` : ''}</td></tr>`;
+  let html = '', last = null;
+  for(const e of rows){
+    if(so === 'category' && e.category !== last){ last = e.category; const g = rows.filter(x => x.category === last); html += `<tr class="grp"><td colspan="9">${esc(last)} · ${g.length} item(s) · approved ₦${fmt(appr(g))}</td></tr>`; }
+    html += rowHTML(e);
+  }
+  const chips = `<button class="pill ${!cat ? 'on' : ''}" data-act="expcat" data-c="">All categories <b>${base.length}</b></button>` + EXPCATS.map(c => `<button class="pill ${cat === c ? 'on' : ''}" data-act="expcat" data-c="${esc(c)}">${esc(c)} <b>${base.filter(e => e.category === c).length}</b></button>`).join('');
+  return `<div class="bar"><h2 style="margin:0;color:var(--navy)">Expenses & vouchers</h2><span class="sp"></span>${canWrite() ? '<button data-act="newexp">New expense</button>' : ''}</div>
+  <div class="panel"><div class="chips">${chips}</div><div class="bar"><label style="margin:0">Sort by</label><select id="es">${Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${so === k ? 'selected' : ''}>${v[0]}</option>`).join('')}</select>
+  <label style="margin:0">Status</label><select id="ef"><option value="">All</option>${['pending', 'approved', 'rejected'].map(s => `<option ${f === s ? 'selected' : ''}>${s}</option>`).join('')}</select><span class="sp"></span><span class="muted">${rows.length} expense(s)${cat ? ' in ' + esc(cat) : ''} · Approved total: <b>₦${fmt(appr(rows))}</b></span></div>
+  <div class="tw"><table><tr><th>No</th><th>Date</th><th>Category</th><th>Payee / description</th><th class="num">Amount ₦</th><th>Mode</th><th>Doc ref</th><th>Status</th><th></th></tr>${html || '<tr><td colspan=9 class="muted">No expenses.</td></tr>'}</table></div></div>`;
+}
+function expForm(){ modal(`<h3>New expense</h3><div class="g2"><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div><div><label>Category</label><select id="f_c">${opt(EXPCATS)}</select></div><div><label>Payee</label><input id="f_p"></div><div><label>Amount (₦)</label><input id="f_a" inputmode="decimal"></div><div><label>Payment mode</label><select id="f_m">${opt(['Cash', 'Bank Transfer', 'POS', 'Cheque', 'Credit'])}</select></div><div><label>Supporting document ref</label><input id="f_r"></div></div><label>Description</label><input id="f_n">
+  <p class="muted">Needs the owner's approval and a document reference before it counts. Do not enter stock purchases here — use Stock.</p><p><button data-act="saveexp">Submit for approval</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveExp(){
+  const k = toKobo(val('f_a')); if(!k || k <= 0 || !val('f_p').trim() || !val('f_n').trim()) return toast('Complete payee, description and amount');
+  const r = await write({ kind: 'rpc', fn: 'create_expense', args: { p_client_ref: uuid(), p_date: val('f_d'), p_category: val('f_c'), p_payee: val('f_p').trim(), p_description: val('f_n').trim(), p_amount_kobo: k, p_pay_mode: val('f_m'), p_doc_ref: val('f_r') || null }, label: 'Expense ₦' + fmt(k) });
+  if(!r.ok) return toast(r.error, 7000); closeModal(); if(!r.queued) await loadAll(); toast(r.queued ? 'Saved offline — will sync' : 'Submitted for approval');
+}
+function voucher(id){
+  const e = S.expenses.find(x => x.id === id), sc = S.school;
+  modal(`<div id="print-area"><div class="rcpt"><h2>${esc(sc.name)}</h2><div class="t">PAYMENT VOUCHER</div><table><tr><td>Voucher no</td><td><b>${e.voucher_no}</b></td></tr><tr><td>Date</td><td>${e.expense_date}</td></tr><tr><td>Pay to</td><td>${esc(e.payee)}</td></tr><tr><td>Being</td><td>${esc(e.description)}</td></tr><tr><td>Category</td><td>${esc(e.category)}</td></tr>
+  <tr><td>Amount</td><td class="big">₦${fmt(e.amount_kobo)}</td></tr><tr><td></td><td class="muted"><i>${esc(nairaWords(e.amount_kobo))}</i></td></tr><tr><td>Mode</td><td>${e.pay_mode}</td></tr><tr><td>Document ref</td><td>${esc(e.doc_ref)}</td></tr></table>
+  <p style="margin-top:22px;font-size:11px">Prepared: ____________ &nbsp; Approved: ____________ &nbsp; Received: ____________</p></div></div><p><button onclick="window.print()">Print</button> <button class="alt" data-act="close">Close</button></p>`);
+}
+
+function pgStock(){
+  const tab = pgStock.tab || 'items', head = tabBar('Stock: uniforms, textbooks, sportswear', tab, [['items', 'Items & stock'], ['buy', 'Purchases'], ['sell', 'Sales']], 'sttab');
+  const code = id => (S.itemStock.find(i => i.item_id === id) || {}).code || '?';
+  if(tab === 'buy') return head + `<div class="panel">${canWrite() ? '<div class="bar"><button data-act="newbuy">Record purchase / return / opening stock</button></div>' : ''}<div class="tw"><table><tr><th>Ref</th><th>Date</th><th>Type</th><th>Item</th><th class="num">Qty</th><th class="num">Unit cost ₦</th><th>Mode</th><th>Supplier</th></tr>${S.purchases.map(p => `<tr><td>${p.ref_no}</td><td>${p.purchase_date}</td><td>${p.kind}</td><td>${esc(code(p.item_id))}</td><td class="num">${p.signed_qty}</td><td class="num">${fmt(p.unit_cost_kobo)}</td><td>${p.pay_mode}</td><td>${esc(p.supplier)}</td></tr>`).join('')}</table></div></div>`;
+  if(tab === 'sell') return head + `<div class="panel">${canWrite() ? '<div class="bar"><button data-act="newsale">Record sale / return</button></div>' : ''}<div class="tw"><table><tr><th>Ref</th><th>Date</th><th>Item</th><th class="num">Qty</th><th class="num">Total ₦</th><th>Student</th><th>Mode</th></tr>${S.sales.map(s => `<tr><td>${s.ref_no}</td><td>${s.sale_date}</td><td>${esc(code(s.item_id))}</td><td class="num">${s.signed_qty}</td><td class="num">${fmt(s.total_kobo)}</td><td>${s.student_id ? esc(stuName(s.student_id)) : ''}</td><td>${s.pay_mode}</td></tr>`).join('')}</table></div></div>`;
+  const val_ = S.itemStock.reduce((a, i) => a + Number(i.stock_value_kobo), 0);
+  return head + `<div class="panel">${canWrite() ? '<div class="bar"><button data-act="newitem">Add item</button></div>' : ''}<div class="tw"><table><tr><th>Code</th><th>Item</th><th>Category</th><th class="num">Price ₦</th><th class="num">In stock</th><th class="num">Reorder at</th><th class="num">Stock value ₦</th><th></th></tr>
+  ${S.itemStock.map(i => `<tr><td>${esc(i.code)}</td><td>${esc(i.name)}</td><td>${i.category}</td><td class="num">${fmt(i.price_kobo)}</td><td class="num">${i.balance}</td><td class="num">${i.reorder_level}</td><td class="num">${fmt(i.stock_value_kobo)}</td><td>${i.reorder ? '<span class="tag CANCELLED">REORDER</span>' : ''}</td></tr>`).join('')}
+  <tr><th colspan=6>Total stock at cost</th><th class="num">${fmt(val_)}</th><th></th></tr></table></div><p class="muted">Cost of goods sold uses the weighted-average cost of purchases to the sale date. Sales beyond stock are refused.</p></div>`;
+}
+function itemForm(){ modal(`<h3>Add item</h3><div class="g2"><div><label>Code</label><input id="f_c"></div><div><label>Category</label><select id="f_k">${opt(['Uniform', 'Textbook', 'Sportswear'])}</select></div><div><label>Name</label><input id="f_n"></div><div><label>Selling price (₦)</label><input id="f_p" inputmode="decimal"></div><div><label>Reorder level</label><input id="f_r" type="number" value="5"></div></div><p><button data-act="saveitem">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveItem(){
+  const p = toKobo(val('f_p') || '0'); if(!val('f_c').trim() || !val('f_n').trim() || p === null) return toast('Complete the form');
+  const r = await write({ kind: 'insert', table: 'items', row: { id: uuid(), school_id: S.profile.school_id, code: val('f_c').trim().toUpperCase(), name: val('f_n').trim(), category: val('f_k'), price_kobo: p, reorder_level: parseInt(val('f_r') || '0', 10) }, label: 'New item' });
+  if(!r.ok) return toast(r.error, 6000); closeModal(); if(!r.queued) await loadAll(); toast('Saved');
+}
+function buyForm(){ modal(`<h3>Stock purchase / return / opening stock</h3><label>Item</label><select id="f_i">${itemOpts()}</select><div class="g2"><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div><div><label>Type</label><select id="f_k"><option value="purchase">Purchase</option><option value="supplier_return">Supplier return</option><option value="opening">Opening stock</option></select></div>
+  <div><label>Quantity</label><input id="f_q" type="number" min="1"></div><div><label>Unit cost (₦)</label><input id="f_u" inputmode="decimal"></div><div><label>Paid by</label><select id="f_m">${opt(['Cash', 'Bank Transfer', 'POS', 'Cheque', 'Credit'])}</select></div><div><label>Supplier</label><input id="f_s"></div></div><label>Document ref</label><input id="f_r"><p class="muted">Opening stock ignores “Paid by”.</p><p><button data-act="savebuy">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveBuy(){
+  const q = parseInt(val('f_q'), 10), u = toKobo(val('f_u')); if(!q || q < 1 || u === null) return toast('Enter quantity and unit cost');
+  const r = await write({ kind: 'rpc', fn: 'record_purchase', args: { p_client_ref: uuid(), p_date: val('f_d'), p_kind: val('f_k'), p_supplier: val('f_s') || null, p_item_id: val('f_i'), p_qty: q, p_unit_cost_kobo: u, p_pay_mode: val('f_m'), p_doc_ref: val('f_r') || null }, label: 'Stock purchase' });
+  if(!r.ok) return toast(r.error, 7000); closeModal(); if(!r.queued) await loadAll(); toast(r.queued ? 'Saved offline — will sync' : 'Recorded');
+}
+function saleForm(){ modal(`<h3>Stock sale / return</h3><label>Item</label><select id="f_i">${itemOpts()}</select><div class="g2"><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div><div><label>Type</label><select id="f_k"><option value="sale">Sale</option><option value="return">Return</option></select></div>
+  <div><label>Quantity</label><input id="f_q" type="number" min="1"></div><div><label>Price override (₦, optional)</label><input id="f_u" inputmode="decimal"></div><div><label>Payment</label><select id="f_m">${opt(['Cash', 'Bank Transfer', 'POS', 'Cheque', 'Student Account'])}</select></div><div><label>Student (needed for Student Account)</label><select id="f_s"><option value="">—</option>${stuOpts()}</select></div></div><label>Document ref</label><input id="f_r">
+  <p class="muted">“Student Account” adds the amount to the student's fees balance — do not also invoice it.</p><p><button data-act="savesale">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+async function saveSale(){
+  const q = parseInt(val('f_q'), 10); if(!q || q < 1) return toast('Enter a quantity'); const u = val('f_u').trim() ? toKobo(val('f_u')) : null; if(val('f_u').trim() && u === null) return toast('Invalid price');
+  const r = await write({ kind: 'rpc', fn: 'record_sale', args: { p_client_ref: uuid(), p_date: val('f_d'), p_kind: val('f_k'), p_item_id: val('f_i'), p_qty: q, p_unit_price_kobo: u, p_student_id: val('f_s') || null, p_pay_mode: val('f_m'), p_doc_ref: val('f_r') || null }, label: 'Stock sale' });
+  if(!r.ok) return toast(r.error, 7000); closeModal(); if(!r.queued) await loadAll(); toast(r.queued ? 'Saved offline — will sync' : 'Recorded');
+}
+async function rpcNow(fn, args, okMsg){ if(!needOnline()) return false; const { data, error } = await sb.rpc(fn, args); if(error){ toast(error.message, 7000); return false; } await loadAll(); toast(typeof okMsg === 'function' ? okMsg(data) : okMsg); return true; }
+async function stage2(a, id, t){
+  switch(a){
+    case 'prtab': pgPayroll.tab = t.dataset.t; route(); return true;
+    case 'sttab': pgStock.tab = t.dataset.t; route(); return true;
+    case 'prgen': await rpcNow('generate_payroll', { p_month: (pgPayroll.month || $('#pm').value + '-01').slice(0, 7) + '-01' }, n => n + ' payroll lines calculated'); return true;
+    case 'prapprove': if(!confirm('Approve this month’s payroll? Approved lines become final.')) return true;
+      await rpcNow('approve_payroll', { p_month: $('#pm').value + '-01' }, r => `${r.approved} approved` + (r.blocked ? `, ${r.blocked} still blocked` : '')); return true;
+    case 'prpaid': modal(`<h3>Mark payroll paid</h3><div class="g2"><div><label>Method</label><select id="f_m">${opt(['Bank Transfer', 'Cash', 'Cheque', 'POS'])}</select></div><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div></div><p class="muted">Marks every approved, unpaid line for the month as paid.</p><p><button data-act="savepaid">Confirm</button> <button class="alt" data-act="close">Cancel</button></p>`); return true;
+    case 'savepaid': closeModal(); await rpcNow('mark_payroll_paid', { p_month: $('#pm').value + '-01', p_method: val('f_m'), p_date: val('f_d') }, n => n + ' lines marked paid'); return true;
+    case 'payslip': payslip(id); return true;
+    case 'pradj': adjForm(id); return true;
+    case 'saveadj': { const x = toKobo(val('f_x') || '0'); if(x === null) { toast('Invalid amount'); return true; } const ov = $('#f_ov') ? $('#f_ov').checked : false; closeModal(); await rpcNow('set_payroll_adjustment', { p_line_id: id, p_extra_kobo: x, p_authorise_override: ov }, 'Updated'); return true; }
+    case 'newstaff': staffForm(); return true; case 'editstaff': staffForm(id); return true; case 'savestaff': await saveStaff(id); return true;
+    case 'newloan': loanForm(); return true; case 'saveloan': await saveLoan(); return true;
+    case 'newexp': expForm(); return true; case 'saveexp': await saveExp(); return true;
+    case 'exapp': await rpcNow('decide_expense', { p_expense_id: id, p_approve: true, p_note: null }, 'Approved — voucher issued'); return true;
+    case 'exrej': modal(`<h3>Reject expense</h3><label>Reason (required)</label><input id="f_r"><p><button class="bad" data-act="saverej" data-id="${id}">Reject</button> <button class="alt" data-act="close">Cancel</button></p>`); return true;
+    case 'saverej': { const r = val('f_r').trim(); if(!r) { toast('A reason is required'); return true; } closeModal(); await rpcNow('decide_expense', { p_expense_id: id, p_approve: false, p_note: r }, 'Rejected'); return true; }
+    case 'exsettle': modal(`<h3>Settle credit expense</h3><div class="g2"><div><label>Paid by</label><select id="f_m">${opt(METHODS, 'Bank Transfer')}</select></div><div><label>Date</label><input type="date" id="f_d" value="${today()}"></div></div><p><button data-act="savesettle" data-id="${id}">Settle</button> <button class="alt" data-act="close">Cancel</button></p>`); return true;
+    case 'savesettle': closeModal(); await rpcNow('settle_expense', { p_expense_id: id, p_method: val('f_m'), p_date: val('f_d') }, 'Settled'); return true;
+    case 'voucher': voucher(id); return true;
+    case 'newitem': itemForm(); return true; case 'saveitem': await saveItem(); return true;
+    case 'newbuy': buyForm(); return true; case 'savebuy': await saveBuy(); return true;
+    case 'newsale': saleForm(); return true; case 'savesale': await saveSale(); return true;
+  }
+  return false;
+}
+
+
+/* ============================ LOCAL EDITION: backup / restore ============================ */
+async function refreshBackupInfo(){ try { lastBackup = await NM_LOCAL_API.lastBackup(); } catch(e){ lastBackup = null; } }
+function backupPanel(){
+  return `<div class="panel" style="border-color:var(--orange)"><h2>Backup & restore</h2>
+  <p>All records are stored <b>only in this browser on this computer</b>. They are lost if browsing data is cleared, the browser is reinstalled, or you open the app on another computer. <b>Download a backup every week and after every month-end</b>, and keep a copy on a flash drive or email it to yourself.</p>
+  <p><button data-act="backup">Download backup (.json)</button> <label class="btn alt" style="display:inline-block;cursor:pointer;padding:8px 12px">Restore from a backup file…<input type="file" id="bkfile" accept=".json,application/json" style="display:none"></label> <button class="bad" data-act="wipe" style="float:right">Erase all data on this device</button></p>
+  <p class="muted">Last backup: ${lastBackup ? new Date(lastBackup).toLocaleString() : 'never'}. To move to another computer: download a backup here, open the app there, and use “Restore from a backup file”.</p></div>`;
+}
+function backupModal(){ modal(`<h3>Backup & restore</h3><p>Your data lives only in this browser. Download a backup regularly.</p><p><button data-act="backup">Download backup now</button> <button class="alt" data-act="close">Close</button></p><p class="muted">Last backup: ${lastBackup ? new Date(lastBackup).toLocaleString() : 'never'}. Restore is on the School Setup page.</p>`); }
+async function downloadBackup(){
+  const json = await NM_LOCAL_API.exportJSON(); const name = (S.school ? S.school.name : 'school').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = `NobleMinds-backup-${name}-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+  await refreshBackupInfo(); route(); toast('Backup downloaded — keep it somewhere safe');
+}
+async function restoreFile(f){
+  if(!f) return; if(!confirm('Restore from "' + f.name + '"? This REPLACES all data currently on this device.')) return;
+  try { await NM_LOCAL_API.importJSON(await f.text()); toast('Restored. Reloading…'); setTimeout(() => location.reload(), 600); } catch(e){ toast('Restore failed: ' + e.message, 7000); }
+}
+async function localActs(a){
+  if(a === 'backup'){ await downloadBackup(); return true; }
+  if(a === 'wipe'){ modal(`<h3>Erase all data?</h3><p class="neg"><b>This permanently deletes every record on this device.</b> Download a backup first if you may need it.</p><label>Type ERASE to confirm</label><input id="f_w">${dashSet ? '<label>Dashboard password</label><input id="f_wp" type="password">' : ''}<p><button class="bad" data-act="dowipe">Erase everything</button> <button class="alt" data-act="close">Cancel</button></p>`); return true; }
+  if(a === 'dowipe'){ if(val('f_w').trim() !== 'ERASE') { toast('Type ERASE to confirm'); return true; } if(dashSet && !(await NM_LOCAL_API.dashCheck(val('f_wp')))) { toast('Enter the dashboard password to erase data'); return true; } await NM_LOCAL_API.reset(); location.reload(); return true; }
+  return false;
+}
+
+/* ============================ event delegation ============================ */
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-act]'); if(!t) return; const a = t.dataset.act, id = t.dataset.id; if(t.tagName === 'A') e.preventDefault();
+  if(await localActs(a, id, t)) return;
+  if(await dashActs(a, id, t)) return;
+  if(slipActs(a, id, t)) return;
+  if(rcptActs(a, id, t)) return;
+  if(a === 'expcat'){ pgExpenses.cat = t.dataset.c || ''; route(); return; }
+  if(await stage2(a, id, t)) return;
+  if(a === 'close') closeModal();
+  else if(a === 'newpay') payForm(id); else if(a === 'savepay') await savePay();
+  else if(a === 'rcpt') showReceipt(id); else if(a === 'reverse') reverseForm(id); else if(a === 'savereverse') await saveReverse(id);
+  else if(a === 'newrefund') refundForm(id); else if(a === 'saverefund') await saveRefund();
+  else if(a === 'newstu') stuForm(); else if(a === 'editstu') stuForm(id); else if(a === 'savestu') await saveStu(id);
+  else if(a === 'newfee') feeForm(); else if(a === 'savefee') await saveFee(); else if(a === 'gen') genForm(); else if(a === 'savegen') await saveGen();
+  else if(a === 'newinv') invForm(); else if(a === 'saveinv') await saveInv();
+  else if(a === 'tab'){ pgFees.tab = t.dataset.t; route(); }
+  else if(a === 'coll'){ pgPay.from = val('cf'); pgPay.to = val('ct'); route(); }
+  else if(a === 'sync'){ closeModal(); Q.forEach(q => delete q.failed); saveQ(); flushQueue(); }
+  else if(a === 'drop'){ Q = Q.filter(q => q.qid !== id); saveQ(); chip(); closeModal(); if(Q.length) pendingModal(); }
+  else if(a === 'newclass') simpleInsert('Add class', '<label>Class name</label><input id="f_n"><label>Level</label><select id="f_l"><option>Nursery</option><option>Primary</option><option>Secondary</option></select><label>Class teacher</label><input id="f_t">', 'classes', () => val('f_n').trim() ? { name: val('f_n').trim(), level: val('f_l'), class_teacher: val('f_t') } : (toast('Name required'), null));
+  else if(a === 'newterm') simpleInsert('Add term', '<label>Session (e.g. 2026/2027)</label><input id="f_s"><label>Term</label><select id="f_t"><option>Term 1</option><option>Term 2</option><option>Term 3</option></select><div class="g2"><div><label>Start</label><input type="date" id="f_a"></div><div><label>End</label><input type="date" id="f_b"></div></div>', 'terms', () => (val('f_s') && val('f_a') && val('f_b')) ? { session: val('f_s').trim(), term: val('f_t'), start_date: val('f_a'), end_date: val('f_b') } : (toast('Complete the form'), null));
+  else if(a === 'savesimple') await saveSimple();
+  else if(a === 'editschool'){ const s = S.school; modal(`<h3>School details</h3><label>Name</label><input id="f_n" value="${esc(s.name)}"><label>Address</label><input id="f_a" value="${esc(s.address)}"><div class="g2"><div><label>Phone</label><input id="f_p" value="${esc(s.phone)}"></div><div><label>Email</label><input id="f_e" value="${esc(s.email)}"></div></div><label>Overpayment policy</label><select id="f_o"><option value="allow" ${s.overpayment_policy === 'allow' ? 'selected' : ''}>Allow — hold excess as advance credit</option><option value="block" ${s.overpayment_policy === 'block' ? 'selected' : ''}>Block overpayments</option></select><p><button data-act="saveschool">Save</button> <button class="alt" data-act="close">Cancel</button></p>`); }
+  else if(a === 'saveschool'){ const { error } = await sb.from('schools').update({ name: val('f_n'), address: val('f_a'), phone: val('f_p'), email: val('f_e'), overpayment_policy: val('f_o') }).eq('id', S.school.id); if(error) return toast(error.message); closeModal(); await loadAll(); }
+  else if(a === 'addmember'){ const { error } = await sb.rpc('add_member', { p_email: val('te').trim(), p_role: val('tr') }); if(error) return toast(error.message, 6000); await loadAll(); toast('Member added'); }
+});
+document.addEventListener('input', e => {
+  if(e.target.id === 'srch'){ pgPay.q = e.target.value; refreshPayList(); }
+  if(e.target.id === 'sq'){ pgStudents.q = e.target.value; const pos = e.target.selectionStart; route(); const n = $('#sq'); if(n){ n.focus(); n.setSelectionRange(pos, pos); } }
+});
+document.addEventListener('change', e => { if(e.target.id === 'sc'){ pgStudents.cl = e.target.value; route(); } if(e.target.id === 'ef'){ pgExpenses.f = e.target.value; route(); } if(e.target.id === 'es'){ pgExpenses.so = e.target.value; route(); }
+  if(e.target.id === 'pcl'){ pgPay.cl = e.target.value; refreshPayList(); } if(e.target.id === 'plf'){ pgPay.lf = e.target.value; refreshPayList(); } if(e.target.id === 'plt'){ pgPay.lt = e.target.value; refreshPayList(); }
+  if(e.target.id === 'ppp') pgPay.pp = e.target.value; if(e.target.id === 'spp') pgPayroll.pp = e.target.value;
+  const c = e.target;
+  if(c.classList && c.classList.contains('chk-pay')){ c.checked ? selPay.add(c.dataset.id) : selPay.delete(c.dataset.id); updPaySel(); }
+  if(c.id === 'chkall-pay'){ document.querySelectorAll('.chk-pay').forEach(x => { x.checked = c.checked; c.checked ? selPay.add(x.dataset.id) : selPay.delete(x.dataset.id); }); updPaySel(); }
+  if(c.classList && c.classList.contains('chk-slip')){ c.checked ? selSlip.add(c.dataset.id) : selSlip.delete(c.dataset.id); $('#slipsel').textContent = selSlip.size + ' selected'; }
+  if(c.id === 'chkall-slip'){ document.querySelectorAll('.chk-slip').forEach(x => { x.checked = c.checked; c.checked ? selSlip.add(x.dataset.id) : selSlip.delete(x.dataset.id); }); $('#slipsel').textContent = selSlip.size + ' selected'; } if(e.target.id === 'pm'){ pgPayroll.month = e.target.value + '-01'; route(); } });
+document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.id === 'dpw'){ const b = document.querySelector('[data-act=dashunlock],[data-act=dashcreate]'); if(b && e.target.autocomplete === 'current-password') b.click(); } });
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('change', e => { if(e.target.id === 'bkfile') restoreFile(e.target.files[0]); });
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+NM_LOCAL_API.onExternalChange(() => debLoad());
+refreshBackupInfo().then(boot);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "Noble Minds School Accounting System",
+  "short_name": "NM Accounts",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0B2559",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

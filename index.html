@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Noble Minds School Accounting System</title>
+<title>NODAC SchoolSuite</title>
 <meta name="description" content="School fees, payroll, expenses and stock accounting for Nigerian schools. Data is stored privately in this browser.">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0B2559">
@@ -122,6 +122,7 @@ function printDocs(htmls, per){
   window.addEventListener('afterprint', done);
   setTimeout(() => { window.print(); setTimeout(done, 1500); }, 60);
 }
+const ini = n => (String(n || '').match(/[A-Za-z0-9]+/g) || ['S']).filter(w => !/^(of|the|and)$/i.test(w)).slice(0, 3).map(w => w[0].toUpperCase()).join('') || 'S';
 const selPay = new Set(), selSlip = new Set(), mailed = new Set();
 const LOCK_SVG = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
 
@@ -196,7 +197,7 @@ function setupScreen(){
   $('#go').onclick = () => { const url = $('#u').value.trim(), key = $('#k').value.trim(); if(!/^https:\/\/.+/.test(url) || key.length < 20) return toast('Enter a valid URL and key'); localStorage.setItem('nm_cfg', JSON.stringify({ url, key })); location.reload(); };
 }
 function loginScreen(msg){
-  $('#app').innerHTML = `<div class="login"><div style="text-align:center"><div class="logo" style="width:54px;height:54px;border-radius:50%;border:4px solid var(--orange);background:var(--navy);color:#fff;margin:auto;display:grid;place-items:center;font-weight:700">NM</div><h2 style="color:var(--navy)">Noble Minds<br>School Accounting System</h2></div>
+  $('#app').innerHTML = `<div class="login"><div style="text-align:center"><div class="logo" style="width:54px;height:54px;border-radius:50%;border:4px solid var(--orange);background:var(--navy);color:#fff;margin:auto;display:grid;place-items:center;font-weight:700">ND</div><h2 style="color:var(--navy)">NODAC<br>SchoolSuite</h2></div>
   <p class="muted">${esc(msg || 'Sign in, or create an account if you are the first user of your school.')}</p>
   <label>Email</label><input id="em" type="email" autocomplete="username"><label>Password (min 8 characters)</label><input id="pw" type="password" autocomplete="current-password">
   <p><button id="in">Sign in</button> <button id="up" class="alt">Create account</button> <button id="rs" class="alt" style="float:right">Forgot?</button></p>
@@ -207,7 +208,7 @@ function loginScreen(msg){
   $('#cfgreset').onclick = ev => { ev.preventDefault(); localStorage.removeItem('nm_cfg'); location.reload(); };
 }
 function createSchoolScreen(){
-  $('#app').innerHTML = `<div class="login"><h2>Create your school</h2><p class="muted">Your school's records are saved <b>only in this browser on this computer</b>. Download a backup regularly from the Backup button.</p>
+  $('#app').innerHTML = `<div class="login"><div style="text-align:center"><div class="logo" style="width:54px;height:54px;border-radius:50%;border:4px solid var(--orange);background:var(--navy);color:#fff;margin:auto;display:grid;place-items:center;font-weight:700">ND</div><h2 style="color:var(--navy);margin-bottom:2px">NODAC SchoolSuite</h2></div><h3 style="margin:14px 0 0">Create your school</h3><p class="muted">Your school's records are saved <b>only in this browser on this computer</b>. Download a backup regularly from the Backup button.</p>
   <label>School name</label><input id="sn"><label>Receipt prefix (2-8 letters/digits)</label><input id="sp" value="NMI" maxlength="8"><label>Your full name</label><input id="fn">
   <p><button id="mk">Create school</button></p></div>`;
   $('#mk').onclick = async () => { const { error } = await sb.rpc('create_school', { p_name: $('#sn').value.trim(), p_prefix: $('#sp').value.trim().toUpperCase(), p_full_name: $('#fn').value.trim() }); if(error) return toast(error.message, 6000); boot(); };
@@ -275,7 +276,7 @@ window.addEventListener('online', () => { chip(); flushQueue(); }); window.addEv
 /* ============================ shell / router ============================ */
 const NAV = [['#/', 'Dashboard'], ['#/payments', 'Payments'], ['#/students', 'Students'], ['#/fees', 'Fees & Invoices'], ['#/payroll', 'Payroll'], ['#/expenses', 'Expenses'], ['#/stock', 'Stock'], ['#/setup', 'School Setup']];
 function shell(){
-  $('#app').innerHTML = `<header><div class="logo">NM</div><h1>${esc(S.school ? S.school.name : 'School')}<br><small>Noble Minds School Accounting System</small></h1><span id="chip" class="chip"></span><button class="org" style="padding:4px 10px;display:none" id="lk" data-act="dashlock">Lock dashboard</button><button class="alt" style="padding:4px 9px" id="so">Backup</button></header>
+  $('#app').innerHTML = `<header><div class="logo">ND</div><h1>${esc(S.school ? S.school.name : 'School')}<br><small>NODAC SchoolSuite</small></h1><span id="chip" class="chip"></span><button class="org" style="padding:4px 10px;display:none" id="lk" data-act="dashlock">Lock dashboard</button><button class="alt" style="padding:4px 9px" id="so">Backup</button></header>
   <nav>${NAV.map(([h, t]) => `<a href="${h}" data-h="${h}">${t}</a>`).join('')}</nav><main id="main"></main>`;
   $('#so').onclick = backupModal; chip(); syncLock(); route();
 }
@@ -315,7 +316,7 @@ function pgDash(){
   const pm = [...new Set(S.payroll.filter(l => l.status !== 'draft').map(l => l.month))].sort().pop();
   const payNet = pm ? sum(S.payroll.filter(l => l.month === pm && l.status !== 'draft'), l => l.net_kobo) : 0;
   return `<div class="bar"><h2 style="margin:0;color:var(--navy)">Dashboard</h2><span class="sp"></span><button class="alt" data-act="dashchange">Change password</button><button class="org" data-act="dashlock">Lock</button></div>
-  <div class="cards"><div class="card"><span>Fees billed</span><b>₦${fmt(billed)}</b></div><div class="card"><span>Net collected</span><b>₦${fmt(collected)}</b></div>
+  <div class="cards"><div class="card" style="border-left-color:var(--navy);background:var(--tint)"><span>Total income (fees + stock sales)</span><b>₦${fmt(collected + sum(S.sales, x => x.total_kobo))}</b></div><div class="card"><span>Fees billed</span><b>₦${fmt(billed)}</b></div><div class="card"><span>Net collected</span><b>₦${fmt(collected)}</b></div>
   <div class="card"><span>Outstanding fees</span><b>₦${fmt(owing)}</b></div><div class="card"><span>Advance held</span><b>₦${fmt(adv)}</b></div>
   <div class="card"><span>Collected today</span><b>₦${fmt(tot(p => p.pay_date === today))}</b></div><div class="card"><span>Collected this month</span><b>₦${fmt(tot(p => p.pay_date.startsWith(month)))}</b></div>
   <div class="card"><span>Approved expenses</span><b>₦${fmt(expApproved)}</b></div><div class="card"><span>Net payroll${pm ? ' · ' + monthLabel(pm) : ''}</span><b>₦${fmt(payNet)}</b></div>
@@ -368,7 +369,7 @@ function pgStatement(id){
   const other = Number(b.billed_kobo) - inv.reduce((a, i) => a + Number(i.net_kobo), 0);
   const lump = Object.entries(grp).sort((x, y) => x[0].localeCompare(y[0]));
   return `<div class="bar"><a href="#/students">← Students</a><span class="sp"></span>${canWrite() ? `<button data-act="newpay" data-id="${id}">Record payment</button> ${b.advance_kobo > 0 ? `<button class="alt" data-act="newrefund" data-id="${id}">Refund credit</button>` : ''} <button class="alt" data-act="editstu" data-id="${id}">Edit</button>` : ''} <button class="org" onclick="window.print()">Print statement</button></div>
-  <div class="panel" id="print-area"><div class="rcpt" style="max-width:none;border-width:0;padding:0"><div class="brand"><div class="lg">NM</div><div><h2>${esc(S.school.name)}</h2><div class="muted">${esc(S.school.address)} ${esc(S.school.phone)}</div></div></div><div class="t">STUDENT FEE STATEMENT</div></div>
+  <div class="panel" id="print-area"><div class="rcpt" style="max-width:none;border-width:0;padding:0"><div class="brand"><div class="lg">${ini(S.school.name)}</div><div><h2>${esc(S.school.name)}</h2><div class="muted">${esc(S.school.address)} ${esc(S.school.phone)}</div></div></div><div class="t">STUDENT FEE STATEMENT</div></div>
   <p><b>${esc(s.surname)}, ${esc(s.first_name)}</b> · ${esc(s.admission_no)} · ${esc(s.class_name)} · Guardian: ${esc(s.guardian)} ${esc(s.phone)}</p>
   <div class="cards"><div class="card"><span>Total fees</span><b>₦${fmt(b.billed_kobo)}</b></div><div class="card"><span>Paid (net)</span><b>₦${fmt(b.paid_kobo)}</b></div><div class="card"><span>${b.outstanding_kobo < 0 ? 'Credit' : 'Outstanding'}</span><b class="${b.outstanding_kobo > 0 ? 'neg' : 'pos'}">₦${fmt(Math.abs(b.outstanding_kobo))}</b></div></div>
   <h2>Fees charged</h2><table><tr><th>Session / term</th><th class="num">Total fee ₦</th></tr>${lump.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="num">${fmt(v)}</td></tr>`).join('') || '<tr><td colspan=2 class="muted">No fees charged yet.</td></tr>'}${other !== 0 ? `<tr><td>Other charges on account</td><td class="num">${fmt(other)}</td></tr>` : ''}<tr><th>Total fees</th><th class="num">${fmt(b.billed_kobo)}</th></tr></table>
@@ -419,7 +420,7 @@ function receiptHTML(p){
   const b = balOf(p.student_id), after = outstandingAfter(Number(b.billed_kobo), S.payments, p.student_id, p.created_at), sc = S.school;
   const creditHeld = S.payments.filter(x => x.student_id === p.student_id && x.created_at <= p.created_at).reduce((a, x) => a + Number(x.advance_kobo), 0);
   const title = p.entry_type === 'payment' ? 'OFFICIAL RECEIPT' : p.entry_type === 'refund' ? 'REFUND VOUCHER' : 'REVERSAL / CANCELLATION NOTICE';
-  return `<div class="rcpt"><div class="brand"><div class="lg">NM</div><div><h2>${esc(sc.name)}</h2><div class="muted">${esc(sc.address)} ${esc(sc.phone)} ${esc(sc.email)}</div></div></div><div class="t">${title}</div>
+  return `<div class="rcpt"><div class="brand"><div class="lg">${ini(sc.name)}</div><div><h2>${esc(sc.name)}</h2><div class="muted">${esc(sc.address)} ${esc(sc.phone)} ${esc(sc.email)}</div></div></div><div class="t">${title}</div>
   <table><tr><td>Receipt No</td><td><b>${esc(p.receipt_no)}</b></td></tr><tr><td>Date</td><td>${p.pay_date}</td></tr><tr><td>Received from</td><td>${esc(p.surname)}, ${esc(p.first_name)}</td></tr><tr><td>Admission No</td><td>${esc(p.admission_no)}</td></tr><tr><td>Class</td><td>${esc(p.class_name)}</td></tr>
   <tr><td>Payment for</td><td>${esc(p.category)}</td></tr><tr><td>Method</td><td>${esc(p.method)}</td></tr><tr><td>Amount</td><td class="big">₦${fmt(p.amount_kobo)}</td></tr><tr><td></td><td class="muted"><i>${esc(nairaWords(p.amount_kobo))}</i></td></tr>
   <tr><td>Outstanding balance</td><td><b>₦${fmt(Math.max(0, after))}</b></td></tr>${creditHeld > 0 ? `<tr><td>Credit held on account</td><td><b>₦${fmt(creditHeld)}</b></td></tr>` : ''}<tr><td>Status</td><td>${p.status}${p.reason ? ' — ' + esc(p.reason) : ''}</td></tr></table>
@@ -547,7 +548,7 @@ function curRows(){ const m = curPayMonth(); return S.payroll.filter(l => l.mont
 const validEmail = e => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || '').trim());
 function payslipHTML(l){
   const sc = S.school, oth = Number(l.other_fixed_kobo) + Number(l.extra_kobo);
-  return `<div class="rcpt"><div class="brand"><div class="lg">NM</div><div><h2>${esc(sc.name)}</h2><div class="muted">${esc(sc.address)}</div></div></div><div class="t">PAYSLIP — ${esc(monthLabel(l.month).toUpperCase())}</div>
+  return `<div class="rcpt"><div class="brand"><div class="lg">${ini(sc.name)}</div><div><h2>${esc(sc.name)}</h2><div class="muted">${esc(sc.address)}</div></div></div><div class="t">PAYSLIP — ${esc(monthLabel(l.month).toUpperCase())}</div>
   <table><tr><td>Name</td><td><b>${esc(l.surname)}, ${esc(l.first_name)}</b> (${esc(l.staff_no)})</td></tr><tr><td>Position</td><td>${esc(l.position)}</td></tr><tr><td>Bank / account</td><td>${esc(l.bank)} ${esc(l.account_no)}</td></tr></table>
   <table style="margin-top:8px"><tr><td>Basic</td><td class="num">${fmt(l.basic_kobo)}</td></tr><tr><td>Housing</td><td class="num">${fmt(l.housing_kobo)}</td></tr><tr><td>Transport</td><td class="num">${fmt(l.transport_kobo)}</td></tr><tr><td>Other allowance</td><td class="num">${fmt(l.other_allow_kobo)}</td></tr><tr><td><b>Gross pay</b></td><td class="num"><b>${fmt(l.gross_kobo)}</b></td></tr>
   <tr><td>Employee pension</td><td class="num">-${fmt(l.pension_emp_kobo)}</td></tr><tr><td>PAYE tax</td><td class="num">-${fmt(l.paye_kobo)}</td></tr><tr><td>Loan / advance repayment</td><td class="num">-${fmt(l.loan_kobo)}</td></tr><tr><td>Other deductions</td><td class="num">-${fmt(oth)}</td></tr>
@@ -732,7 +733,7 @@ function backupPanel(){
 function backupModal(){ modal(`<h3>Backup & restore</h3><p>Your data lives only in this browser. Download a backup regularly.</p><p><button data-act="backup">Download backup now</button> <button class="alt" data-act="close">Close</button></p><p class="muted">Last backup: ${lastBackup ? new Date(lastBackup).toLocaleString() : 'never'}. Restore is on the School Setup page.</p>`); }
 async function downloadBackup(){
   const json = await NM_LOCAL_API.exportJSON(); const name = (S.school ? S.school.name : 'school').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = `NobleMinds-backup-${name}-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = `NODAC-SchoolSuite-backup-${name}-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
   await refreshBackupInfo(); route(); toast('Backup downloaded — keep it somewhere safe');
 }
 async function restoreFile(f){

@@ -1,4 +1,4 @@
-/* Noble Minds School Accounting System - LOCAL EDITION data engine (v1.0)
+/* NODAC SchoolSuite - LOCAL EDITION data engine (v1.0)
    Replaces the cloud database. ALL data is stored in this browser's IndexedDB on this device only.
    Same rules as the cloud edition: integer kobo, append-only ledgers, server-style receipt numbers, approvals. */
 (function (root) {
@@ -330,8 +330,8 @@ const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 /* cross-tab refresh hook: the app re-reads when another tab saves */
 const api = {
   onExternalChange(fn){ listeners.push(fn); },
-  async exportJSON(){ const db = await read(); db.meta.lastBackup = new Date().toISOString(); await lock(async () => { const cur = norm(await idbGet()); cur.meta.lastBackup = db.meta.lastBackup; await idbPut(cur); }); return JSON.stringify({ app: 'noble-minds-school-accounting', format: 1, exported_at: db.meta.lastBackup, data: db }); },
-  async importJSON(text){ const o = JSON.parse(text); if(!o || o.app !== 'noble-minds-school-accounting' || !o.data || !o.data.t) throw new Error('This is not a Noble Minds backup file'); const db = norm(o.data); for(const t of TABLES) if(!Array.isArray(db.t[t])) throw new Error('Backup is incomplete: ' + t); await lock(async () => { await idbPut(db); notify(); }); },
+  async exportJSON(){ const db = await read(); db.meta.lastBackup = new Date().toISOString(); await lock(async () => { const cur = norm(await idbGet()); cur.meta.lastBackup = db.meta.lastBackup; await idbPut(cur); }); return JSON.stringify({ app: 'nodac-schoolsuite', format: 1, exported_at: db.meta.lastBackup, data: db }); },
+  async importJSON(text){ const o = JSON.parse(text); if(!o || !['nodac-schoolsuite', 'noble-minds-school-accounting'].includes(o.app) || !o.data || !o.data.t) throw new Error('This is not a NODAC SchoolSuite backup file'); const db = norm(o.data); for(const t of TABLES) if(!Array.isArray(db.t[t])) throw new Error('Backup is incomplete: ' + t); await lock(async () => { await idbPut(db); notify(); }); },
   async reset(){ await lock(async () => { await idbPut(fresh()); notify(); }); },
   async lastBackup(){ return (await read()).meta.lastBackup; },
   async dashState(){ return { set: !!(await read()).meta.dash }; },

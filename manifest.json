@@ -1,6 +1,6 @@
 {
-  "name": "Noble Minds School Accounting System",
-  "short_name": "NM Accounts",
+  "name": "NODAC SchoolSuite",
+  "short_name": "NODAC",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FFFFFF",

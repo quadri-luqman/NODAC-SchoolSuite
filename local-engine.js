@@ -9,7 +9,10 @@ const CATS = ['School Fees','PTA Levy','Examination Fee','Lesson Fee','Uniforms'
 const EXPCATS = ['Utilities','Rent and Rates','Stationery and Supplies','Repairs and Maintenance','Transport and Fuel','Administration','Bank Charges','Staff Welfare','Marketing','Training and Development'];
 const STOCKCATS = ['Uniform','Textbook','Sportswear'];
 const METHODS = ['Cash','Bank Transfer','POS','Cheque'];
-const LOCAL_USER = { id: 'local-user', email: 'owner@this-browser' };
+const LOCAL_USER = { id: 'local-user', email: 'owner@this-browser', role: 'owner' };
+/* cloud mode is switched on by cloud-config.js (Supabase URL + public anon key). Without it the app stays local-only. */
+const CFG = root.NODAC_CONFIG || {};
+const CLOUD = !!(CFG.supabaseUrl && CFG.supabaseAnonKey && !/YOUR[-_ ]/i.test(CFG.supabaseUrl + ' ' + CFG.supabaseAnonKey));
 
 /* ---------------- storage ---------------- */
 const idbOpen = () => new Promise((res, rej) => { const r = indexedDB.open(DB_NAME, 1); r.onupgradeneeded = () => r.result.createObjectStore(STORE); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
@@ -20,10 +23,80 @@ const norm = db => { if(!db) return fresh(); for(const t of TABLES) db.t[t] = db
 let chain = Promise.resolve();
 const lock = fn => (typeof navigator !== 'undefined' && navigator.locks) ? navigator.locks.request('nm-db', fn) : (() => { const p = chain.then(fn); chain = p.catch(() => {}); return p; })();
 let bc = null, listeners = [];
-try { if(typeof BroadcastChannel !== 'undefined'){ bc = new BroadcastChannel('nm-db'); bc.onmessage = () => listeners.forEach(f => f()); } } catch(e){}
+try { if(typeof BroadcastChannel !== 'undefined'){ bc = new BroadcastChannel('nm-db'); bc.onmessage = async () => { if(CLOUD && session){ try { await lock(cloudPull); } catch(e){} } listeners.forEach(f => f()); }; } } catch(e){}
 const notify = () => { try { bc && bc.postMessage('changed'); } catch(e){} };
-const read = async () => norm(await idbGet());
-const mutate = fn => lock(async () => { const db = norm(await idbGet()); const out = fn(db); await idbPut(db); notify(); return out; });   // throws => nothing saved (rollback)
+
+/* ---------------- cloud storage (Supabase): same engine, data kept in the school's own cloud database ----------------
+   Every table is one row in nodac_parts. A save sends only the tables that changed, through nodac_commit(), which checks a
+   version number so two people saving at the same moment can never overwrite each other (the later one retries on fresh data). */
+const SESSION_KEY = 'nodac_session';
+let session = null, members = [], cache = null;
+try { if(CLOUD) session = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e){}
+if(session && session.user){ LOCAL_USER.id = session.user.id; LOCAL_USER.email = session.user.email; }
+const netErr = e => (e && /Failed to fetch|NetworkError|Load failed|network/i.test(String(e.message))) ? new Error('No internet connection - nothing was saved') : e;
+const baseUrl = () => String(CFG.supabaseUrl).replace(/\/+$/, '');
+async function authCall(path, body){
+  let r; try { r = await fetch(baseUrl() + '/auth/v1/' + path, { method: 'POST', headers: { apikey: CFG.supabaseAnonKey, 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); } catch(e){ throw netErr(e); }
+  const j = await r.json().catch(() => ({})); if(!r.ok) throw new Error(j.error_description || j.msg || j.message || ('Sign-in failed (' + r.status + ')')); return j;
+}
+function setSession(j){
+  session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: Math.floor(Date.now() / 1000) + (j.expires_in || 3600), user: { id: j.user.id, email: j.user.email } };
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e){}
+  LOCAL_USER.id = session.user.id; LOCAL_USER.email = session.user.email;
+}
+const dropSession = () => { session = null; cache = null; members = []; try { localStorage.removeItem(SESSION_KEY); } catch(e){} LOCAL_USER.role = 'none'; };
+async function token(){
+  if(!session) throw new Error('Please sign in');
+  if(session.expires_at - 60 < Date.now() / 1000){ try { setSession(await authCall('token?grant_type=refresh_token', { refresh_token: session.refresh_token })); } catch(e){ if(!/internet/i.test(e.message)) dropSession(); throw e; } }
+  return session.access_token;
+}
+async function rest(path, opts){
+  opts = opts || {}; const t = await token(); let r;
+  try { r = await fetch(baseUrl() + '/rest/v1/' + path, { ...opts, headers: { apikey: CFG.supabaseAnonKey, Authorization: 'Bearer ' + t, 'Content-Type': 'application/json', ...(opts.headers || {}) } }); } catch(e){ throw netErr(e); }
+  const txt = await r.text(); let j = null; try { j = txt ? JSON.parse(txt) : null; } catch(e){}
+  if(!r.ok) throw new Error((j && (j.message || j.hint || j.error)) || ('Server error ' + r.status)); return j;
+}
+async function loadMembers(){
+  members = await rest('nodac_members?select=user_id,email,role');
+  const mine = members.find(m => m.user_id === LOCAL_USER.id);
+  if(!mine){ dropSession(); throw new Error('This account is not linked to the school. Ask the school owner to add you.'); }
+  LOCAL_USER.role = mine.role; LOCAL_USER.name = mine.email;
+}
+const partsOf = db => { const o = { core: { version: db.version, created: db.created, meta: db.meta, counters: db.counters } }; for(const t of TABLES) o[t] = db.t[t]; return o; };
+async function cloudPull(){
+  for(let i = 0; i < 4; i++){
+    const m1 = await rest('nodac_meta?select=version&id=eq.1'), rows = await rest('nodac_parts?select=part,data'), m2 = await rest('nodac_meta?select=version&id=eq.1');
+    if(!m1.length || m1[0].version !== m2[0].version) continue;
+    const by = Object.fromEntries(rows.map(r => [r.part, r.data])), core = by.core; let db;
+    if(!core) db = fresh(); else { db = { ...core, t: {} }; for(const t of TABLES) db.t[t] = by[t] || []; }
+    norm(db); cache = { db, version: m2[0].version, str: Object.fromEntries(rows.map(r => [r.part, JSON.stringify(r.data)])) }; return;
+  }
+  throw new Error('The database is changing too quickly - please try again');
+}
+async function cloudGet(){ if(!cache) await lock(async () => { if(!cache) await cloudPull(); }); return cache.db; }
+async function cloudSave(db){      // true = saved; false = someone else saved first
+  const parts = {}, strs = { ...cache.str }, all = partsOf(db);
+  for(const k of Object.keys(all)){ const sx = JSON.stringify(all[k]); if(sx !== cache.str[k]){ parts[k] = all[k]; strs[k] = sx; } }
+  if(!Object.keys(parts).length) return true;
+  const v = await rest('rpc/nodac_commit', { method: 'POST', body: JSON.stringify({ p_expected: cache.version, p_parts: parts }) });
+  if(v === -1) return false; cache = { db, version: v, str: strs }; return true;
+}
+const read = async () => CLOUD ? norm(await cloudGet()) : norm(await idbGet());
+const mutate = fn => lock(async () => {      // throws => nothing saved (rollback)
+  if(!CLOUD){ const db = norm(await idbGet()); const out = fn(db); await idbPut(db); notify(); return out; }
+  if(!session) throw new Error('Please sign in');
+  for(let attempt = 0; attempt < 6; attempt++){
+    if(!cache) await cloudPull();
+    const db = norm(JSON.parse(JSON.stringify(cache.db))); const out = fn(db);
+    if(await cloudSave(db)){ notify(); return out; }
+    await cloudPull();                      // someone saved first: reload their changes and redo this one on top
+  }
+  throw new Error('Could not save because several people are saving at once. Please try again.');
+});
+if(CLOUD && typeof document !== 'undefined'){
+  const poll = async () => { if(!session || !cache || document.hidden) return; try { const m = await rest('nodac_meta?select=version&id=eq.1'); if(m.length && m[0].version !== cache.version){ await lock(cloudPull); listeners.forEach(f => f()); } } catch(e){} };
+  setInterval(poll, 20000); document.addEventListener('visibilitychange', poll);
+}
 
 /* ---------------- helpers ---------------- */
 const bad = m => { throw new Error(m); };
@@ -40,12 +113,13 @@ const mstart = d => String(d).slice(0, 7) + '-01';
 const mend = m => { const [y, mo] = m.split('-').map(Number); return new Date(Date.UTC(y, mo, 0)).toISOString().slice(0, 10); };
 const school = db => db.t.schools[0];
 const sid = db => { if(!school(db)) bad('Create the school first'); return school(db).id; };
-const me = db => db.t.profiles[0];
+const me = db => CLOUD ? { id: LOCAL_USER.id, full_name: LOCAL_USER.name || LOCAL_USER.email, role: LOCAL_USER.role } : db.t.profiles[0];
 const stuOf = (db, id) => db.t.students.find(s => s.id === id && s.school_id === sid(db));
 const inArr = (v, arr, label) => { if(!arr.includes(v)) bad('Invalid ' + label + ': ' + v); };
 
 /* ---------------- views (same definitions as the cloud schema) ---------------- */
 const V = {
+  profiles: db => CLOUD ? (db.t.schools.length ? members.map(x => ({ id: x.user_id, school_id: db.t.schools[0].id, full_name: x.email, role: x.role, active: true })) : []) : db.t.profiles,
   student_balances: db => db.t.students.map(s => {
     const billed = sum(db.t.invoices.filter(i => i.student_id === s.id), i => i.net_kobo) + sum(db.t.stock_sales.filter(x => x.student_id === s.id && x.pay_mode === 'Student Account'), x => x.total_kobo);
     const ps = db.t.payments.filter(p => p.student_id === s.id), paid = sum(ps, p => p.signed_kobo);
@@ -99,6 +173,7 @@ const UPD = { students: ['surname','first_name','gender','date_of_birth','class_
 /* ---------------- business functions (port of the cloud database functions) ---------------- */
 const RPC = {};
 RPC.create_school = (db, a) => {
+  if(CLOUD && LOCAL_USER.role !== 'owner') bad('Only an owner can create the school');
   if(db.t.schools.length) bad('This browser already has a school');
   const pre = String(a.p_prefix || 'NMI').toUpperCase(); if(!/^[A-Z0-9]{2,8}$/.test(pre)) bad('Receipt prefix must be 2-8 letters or digits'); if(!String(a.p_name || '').trim()) bad('School name required');
   const s = { id: uid(), name: a.p_name.trim(), address: null, phone: null, email: null, receipt_prefix: pre, overpayment_policy: 'allow', created_at: new Date().toISOString() };
@@ -287,9 +362,17 @@ async function doUpdate(t, row, c, v){
   catch(e){ return { error: { message: e.message } }; }
 }
 const client = {
-  auth: { getSession: async () => ({ data: { session: { user: LOCAL_USER } }, error: null }), signOut: async () => ({}), signInWithPassword: async () => ({ error: null }), signUp: async () => ({ data: { session: {} }, error: null }), resetPasswordForEmail: async () => ({ error: null }) },
+  auth: CLOUD ? {
+    getSession: async () => { if(!session) return { data: { session: null }, error: null }; try { await token(); await loadMembers(); return { data: { session: { user: LOCAL_USER } }, error: null }; } catch(e){ return { data: { session: null }, error: { message: e.message } }; } },
+    signOut: async () => { dropSession(); return {}; },
+    signInWithPassword: async ({ email, password }) => { try { setSession(await authCall('token?grant_type=password', { email, password })); await loadMembers(); return { error: null }; } catch(e){ return { error: { message: e.message } }; } },
+    signUp: async () => ({ data: null, error: { message: 'Accounts are created by the school owner. Ask the owner to add you.' } }),
+    resetPasswordForEmail: async email => { try { await authCall('recover', { email }); return { error: null }; } catch(e){ return { error: { message: e.message } }; } }
+  } : { getSession: async () => ({ data: { session: { user: LOCAL_USER } }, error: null }), signOut: async () => ({}), signInWithPassword: async () => ({ error: null }), signUp: async () => ({ data: { session: {} }, error: null }), resetPasswordForEmail: async () => ({ error: null }) },
   from,
-  rpc: async (fn, args) => { try { if(!RPC[fn]) bad('Unknown function ' + fn); const data = await mutate(db => RPC[fn](db, args || {})); return { data, error: null }; } catch(e){ return { data: null, error: { message: e.message } }; } },
+  rpc: async (fn, args) => { try {
+    if(CLOUD && fn === 'add_member'){ await rest('rpc/nodac_add_member', { method: 'POST', body: JSON.stringify({ p_email: args.p_email, p_role: args.p_role }) }); await loadMembers(); return { data: null, error: null }; }
+    if(!RPC[fn]) bad('Unknown function ' + fn); const data = await mutate(db => RPC[fn](db, args || {})); return { data, error: null }; } catch(e){ return { data: null, error: { message: e.message } }; } },
   channel(){ const ch = { on(){ return ch; }, subscribe(cb){ if(cb) cb('SUBSCRIBED'); return ch; } }; return ch; },
   removeChannel(){}
 };
@@ -330,20 +413,23 @@ const normCode = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 /* cross-tab refresh hook: the app re-reads when another tab saves */
 const api = {
   onExternalChange(fn){ listeners.push(fn); },
-  async exportJSON(){ const db = await read(); db.meta.lastBackup = new Date().toISOString(); await lock(async () => { const cur = norm(await idbGet()); cur.meta.lastBackup = db.meta.lastBackup; await idbPut(cur); }); return JSON.stringify({ app: 'nodac-schoolsuite', format: 1, exported_at: db.meta.lastBackup, data: db }); },
-  async importJSON(text){ const o = JSON.parse(text); if(!o || !['nodac-schoolsuite', 'noble-minds-school-accounting'].includes(o.app) || !o.data || !o.data.t) throw new Error('This is not a NODAC SchoolSuite backup file'); const db = norm(o.data); for(const t of TABLES) if(!Array.isArray(db.t[t])) throw new Error('Backup is incomplete: ' + t); await lock(async () => { await idbPut(db); notify(); }); },
-  async reset(){ await lock(async () => { await idbPut(fresh()); notify(); }); },
+  async exportJSON(){ const when = new Date().toISOString(); let db; try { db = await mutate(d => { d.meta.lastBackup = when; return clone(d); }); } catch(e){ db = clone(await read()); }
+    return JSON.stringify({ app: 'nodac-schoolsuite', format: 1, exported_at: when, data: db }); },
+  cloud: CLOUD, user: LOCAL_USER,
+  cloudMembers(){ return members.slice(); },
+  async importJSON(text){ const o = JSON.parse(text); if(!o || !['nodac-schoolsuite', 'noble-minds-school-accounting'].includes(o.app) || !o.data || !o.data.t) throw new Error('This is not a NODAC SchoolSuite backup file'); const db = norm(o.data); for(const t of TABLES) if(!Array.isArray(db.t[t])) throw new Error('Backup is incomplete: ' + t); if(CLOUD && LOCAL_USER.role !== 'owner') throw new Error('Only an owner can restore a backup'); await mutate(cur => { for(const k of Object.keys(cur)) delete cur[k]; Object.assign(cur, db); }); },
+  async reset(){ if(CLOUD && LOCAL_USER.role !== 'owner') throw new Error('Only an owner can erase the data'); await mutate(cur => { for(const k of Object.keys(cur)) delete cur[k]; Object.assign(cur, fresh()); }); },
   async lastBackup(){ return (await read()).meta.lastBackup; },
   async dashState(){ return { set: !!(await read()).meta.dash }; },
   async dashCreate(pw){ if(String(pw || '').length < 6) throw new Error('Use at least 6 characters'); const code = genCode();
-    await lock(async () => { const db = norm(await idbGet()); if(db.meta.dash) throw new Error('A dashboard password already exists'); db.meta.dash = { pw: mkSecret(String(pw)), rc: mkSecret(normCode(code)) }; await idbPut(db); notify(); }); return code; },
+    await mutate(db => { if(db.meta.dash) throw new Error('A dashboard password already exists'); db.meta.dash = { pw: mkSecret(String(pw)), rc: mkSecret(normCode(code)) }; }); return code; },
   async dashCheck(pw){ const d = (await read()).meta.dash; return !!d && okSecret(d.pw, String(pw || '')); },
   async dashChange(proof, newPw){   // proof: { password } or { code }; returns a NEW recovery code when reset by code, else null
     if(String(newPw || '').length < 6) throw new Error('Use at least 6 characters'); let code = null;
-    await lock(async () => { const db = norm(await idbGet()), d = db.meta.dash; if(!d) throw new Error('No dashboard password is set');
+    await mutate(db => { const d = db.meta.dash; if(!d) throw new Error('No dashboard password is set');
       if(proof.code !== undefined){ if(!okSecret(d.rc, normCode(proof.code))) throw new Error('That recovery code is not correct'); code = genCode(); d.rc = mkSecret(normCode(code)); }
       else if(!okSecret(d.pw, String(proof.password || ''))) throw new Error('The current password is not correct');
-      d.pw = mkSecret(String(newPw)); await idbPut(db); notify(); }); return code; },
+      d.pw = mkSecret(String(newPw)); }); return code; },
   async hasSchool(){ return (await read()).t.schools.length > 0; }
 };
 root.supabase = { createClient: () => client };

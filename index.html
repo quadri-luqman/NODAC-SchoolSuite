@@ -60,6 +60,7 @@ label{display:block;font-size:12px;color:#44506b;margin:8px 0 2px;font-weight:60
 <div id="modal"><div id="box"></div></div>
 <div id="toast"></div>
 <script>window.NM_LOCAL = true;</script>
+<script src="cloud-config.js"></script>
 <script src="local-engine.js"></script>
 <script>
 "use strict";
@@ -101,7 +102,9 @@ const S = { user: null, profile: null, school: null, classes: [], terms: [], stu
 let Q = JSON.parse(localStorage.getItem('nm_queue') || '[]');
 let flushing = false;
 const saveQ = () => localStorage.setItem('nm_queue', JSON.stringify(Q));
-const canWrite = () => S.profile && ['owner', 'bursar'].includes(S.profile.role);
+const CLOUDM = !!(window.NM_LOCAL_API && NM_LOCAL_API.cloud);
+const canWrite = () => S.profile && ['owner', 'accountant', 'bursar'].includes(S.profile.role);
+const dashRoleOK = () => !CLOUDM || (S.profile && ['owner', 'accountant'].includes(S.profile.role));
 const isOwner = () => S.profile && S.profile.role === 'owner';
 const online = () => true;                     // local edition: every write is applied immediately on this device
 const isNetErr = e => false;
@@ -135,6 +138,7 @@ function lockDash(msg){ dashOK = false; syncLock(); if((location.hash || '#/') =
 ['click', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => { lastAct = Date.now(); }, true));
 setInterval(() => { if(dashOK && Date.now() - lastAct > IDLE_MS) lockDash('Dashboard locked after 10 minutes of inactivity'); }, 20000);
 const failState = () => { try { return JSON.parse(localStorage.getItem('nm_dash_fail') || '{}'); } catch(e){ return {}; } };
+function dashDenied(){ return `<div class="gate"><div class="gh"><div class="lk">${LOCK_SVG}</div><h2>Dashboard is restricted</h2></div><div class="gb"><p class="muted">Only the proprietors and the accountant can open the dashboard. Use the menu above for the pages your role allows.</p></div></div>`; }
 function dashGate(){
   if(!dashSet) return `<div class="gate"><div class="gh"><div class="lk">${LOCK_SVG}</div><h2>Set the dashboard password</h2></div><div class="gb">
     <p class="muted">The dashboard shows the school's money position. Choose a password and share it <b>only with the accountant and the proprietors</b>.</p>
@@ -198,14 +202,15 @@ function setupScreen(){
 }
 function loginScreen(msg){
   $('#app').innerHTML = `<div class="login"><div style="text-align:center"><div class="logo" style="width:54px;height:54px;border-radius:50%;border:4px solid var(--orange);background:var(--navy);color:#fff;margin:auto;display:grid;place-items:center;font-weight:700">ND</div><h2 style="color:var(--navy)">NODAC<br>SchoolSuite</h2></div>
-  <p class="muted">${esc(msg || 'Sign in, or create an account if you are the first user of your school.')}</p>
-  <label>Email</label><input id="em" type="email" autocomplete="username"><label>Password (min 8 characters)</label><input id="pw" type="password" autocomplete="current-password">
-  <p><button id="in">Sign in</button> <button id="up" class="alt">Create account</button> <button id="rs" class="alt" style="float:right">Forgot?</button></p>
-  <p class="muted"><a href="#" id="cfgreset">Change database connection</a></p></div>`;
+  <p class="muted">${esc(msg || (CLOUDM ? 'Sign in with the account your school owner created for you.' : 'Sign in, or create an account if you are the first user of your school.'))}</p>
+  <label>Email</label><input id="em" type="email" autocomplete="username"><label>Password</label><input id="pw" type="password" autocomplete="current-password">
+  <p><button id="in">Sign in</button> ${CLOUDM ? '' : '<button id="up" class="alt">Create account</button>'} <button id="rs" class="alt" style="float:right">Forgot password?</button></p>
+  ${CLOUDM ? '<p class="muted">Accounts are created by the school owner. Nobody can sign up on their own.</p>' : '<p class="muted"><a href="#" id="cfgreset">Change database connection</a></p>'}</div>`;
+  $('#pw').addEventListener('keydown', e => { if(e.key === 'Enter') $('#in').click(); });
   $('#in').onclick = async () => { const { error } = await sb.auth.signInWithPassword({ email: $('#em').value.trim(), password: $('#pw').value }); if(error) return toast(error.message); boot(); };
-  $('#up').onclick = async () => { const { data, error } = await sb.auth.signUp({ email: $('#em').value.trim(), password: $('#pw').value }); if(error) return toast(error.message); if(!data.session) return toast('Account created. Check your email to confirm, then sign in.', 7000); boot(); };
+  if($('#up')) $('#up').onclick = async () => { const { data, error } = await sb.auth.signUp({ email: $('#em').value.trim(), password: $('#pw').value }); if(error) return toast(error.message); if(!data.session) return toast('Account created. Check your email to confirm, then sign in.', 7000); boot(); };
   $('#rs').onclick = async () => { const e = $('#em').value.trim(); if(!e) return toast('Enter your email first'); const { error } = await sb.auth.resetPasswordForEmail(e); toast(error ? error.message : 'Password reset email sent'); };
-  $('#cfgreset').onclick = ev => { ev.preventDefault(); localStorage.removeItem('nm_cfg'); location.reload(); };
+  if($('#cfgreset')) $('#cfgreset').onclick = ev => { ev.preventDefault(); localStorage.removeItem('nm_cfg'); location.reload(); };
 }
 function createSchoolScreen(){
   $('#app').innerHTML = `<div class="login"><div style="text-align:center"><div class="logo" style="width:54px;height:54px;border-radius:50%;border:4px solid var(--orange);background:var(--navy);color:#fff;margin:auto;display:grid;place-items:center;font-weight:700">ND</div><h2 style="color:var(--navy);margin-bottom:2px">NODAC SchoolSuite</h2></div><h3 style="margin:14px 0 0">Create your school</h3><p class="muted">Your school's records are saved <b>only in this browser on this computer</b>. Download a backup regularly from the Backup button.</p>
@@ -276,26 +281,26 @@ window.addEventListener('online', () => { chip(); flushQueue(); }); window.addEv
 /* ============================ shell / router ============================ */
 const NAV = [['#/', 'Dashboard'], ['#/payments', 'Payments'], ['#/students', 'Students'], ['#/fees', 'Fees & Invoices'], ['#/payroll', 'Payroll'], ['#/expenses', 'Expenses'], ['#/stock', 'Stock'], ['#/setup', 'School Setup']];
 function shell(){
-  $('#app').innerHTML = `<header><div class="logo">ND</div><h1>${esc(S.school ? S.school.name : 'School')}<br><small>NODAC SchoolSuite</small></h1><span id="chip" class="chip"></span><button class="org" style="padding:4px 10px;display:none" id="lk" data-act="dashlock">Lock dashboard</button><button class="alt" style="padding:4px 9px" id="so">Backup</button></header>
-  <nav>${NAV.map(([h, t]) => `<a href="${h}" data-h="${h}">${t}</a>`).join('')}</nav><main id="main"></main>`;
-  $('#so').onclick = backupModal; chip(); syncLock(); route();
+  $('#app').innerHTML = `<header><div class="logo">ND</div><h1>${esc(S.school ? S.school.name : 'School')}<br><small>NODAC SchoolSuite</small></h1><span id="chip" class="chip"></span><button class="org" style="padding:4px 10px;display:none" id="lk" data-act="dashlock">Lock dashboard</button><button class="alt" style="padding:4px 9px" id="so">Backup</button>${CLOUDM ? '<button class="alt" style="padding:4px 9px" id="sout">Sign out</button>' : ''}</header>
+  <nav>${NAV.concat(CLOUDM && isOwner() ? [['#/team', 'Team']] : []).map(([h, t]) => `<a href="${h}" data-h="${h}">${t}</a>`).join('')}</nav><main id="main"></main>`;
+  $('#so').onclick = backupModal; if($('#sout')) $('#sout').onclick = signOut; chip(); syncLock(); route();
 }
 function chip(){
   const c = $('#chip'); if(!c) return; const n = Q.length;
   if(n){ c.className = 'chip q'; c.textContent = n + ' pending sync'; c.onclick = pendingModal; }
   else if(!online()){ c.className = 'chip off'; c.textContent = 'Offline'; c.onclick = null; }
-  else { c.className = 'chip ok'; c.textContent = 'Saved on this device'; c.onclick = null; }
+  else { c.className = 'chip ok'; c.textContent = CLOUDM ? 'Saved in the cloud' : 'Saved on this device'; c.onclick = null; }
 }
 window.addEventListener('hashchange', route);
 function route(){
   const m = $('#main'); if(!m) return; const h = location.hash || '#/';
   document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.dataset.h === h || (h.startsWith('#/student/') && a.dataset.h === '#/students')));
   try {
-    if(h === '#/') m.innerHTML = dashOK ? pgDash() : dashGate(); else if(h === '#/payments') m.innerHTML = pgPay(); else if(h === '#/students') m.innerHTML = pgStudents();
+    if(h === '#/') m.innerHTML = !dashRoleOK() ? dashDenied() : dashOK ? pgDash() : dashGate(); else if(h === '#/payments') m.innerHTML = pgPay(); else if(h === '#/students') m.innerHTML = pgStudents();
     else if(h.startsWith('#/student/')) m.innerHTML = pgStatement(h.split('/')[2]); else if(h === '#/fees') m.innerHTML = pgFees();
-    else if(h === '#/payroll') m.innerHTML = pgPayroll(); else if(h === '#/expenses') m.innerHTML = pgExpenses(); else if(h === '#/stock') m.innerHTML = pgStock(); else if(h === '#/setup') m.innerHTML = pgSetup(); else if(h === '#/team') m.innerHTML = pgTeam(); else m.innerHTML = dashOK ? pgDash() : dashGate();
+    else if(h === '#/payroll') m.innerHTML = pgPayroll(); else if(h === '#/expenses') m.innerHTML = pgExpenses(); else if(h === '#/stock') m.innerHTML = pgStock(); else if(h === '#/setup') m.innerHTML = pgSetup(); else if(h === '#/team') m.innerHTML = pgTeam(); else m.innerHTML = !dashRoleOK() ? dashDenied() : dashOK ? pgDash() : dashGate();
   } catch(e){ m.innerHTML = '<div class="panel">Page error: ' + esc(e.message) + '</div>'; }
-  if(lastBackup !== undefined && (lastBackup === null || Date.now() - new Date(lastBackup).getTime() > 7 * 864e5)) m.innerHTML = `<div class="panel" style="border-color:var(--orange);background:#fff8e1"><b>Back up your data.</b> Everything is stored only in this browser. ${lastBackup ? 'Last backup: ' + new Date(lastBackup).toLocaleDateString() + '.' : 'You have not downloaded a backup yet.'} <button data-act="backup" style="margin-left:8px">Download backup</button></div>` + m.innerHTML;
+  if(!CLOUDM && lastBackup !== undefined && (lastBackup === null || Date.now() - new Date(lastBackup).getTime() > 7 * 864e5)) m.innerHTML = `<div class="panel" style="border-color:var(--orange);background:#fff8e1"><b>Back up your data.</b> Everything is stored only in this browser. ${lastBackup ? 'Last backup: ' + new Date(lastBackup).toLocaleDateString() + '.' : 'You have not downloaded a backup yet.'} <button data-act="backup" style="margin-left:8px">Download backup</button></div>` + m.innerHTML;
 }
 function pendingModal(){
   modal(`<h3>Entries waiting to sync</h3><p class="muted">Saved on this device. They are sent automatically when you are online. Receipt numbers are assigned by the server when they sync.</p>
@@ -389,9 +394,9 @@ function pgSetup(){
   <div class="panel"><h2>Sessions & terms</h2>${canWrite() ? '<button data-act="newterm">Add term</button>' : ''}<table><tr><th>Session</th><th>Term</th><th>Start</th><th>End</th><th>Status</th></tr>${S.terms.map(t => `<tr><td>${esc(t.session)}</td><td>${t.term}</td><td>${t.start_date}</td><td>${t.end_date}</td><td>${t.status}</td></tr>`).join('')}</table></div>` + backupPanel();
 }
 function pgTeam(){
-  return `<div class="panel"><h2>Team</h2><p class="muted">Owner: everything. Bursar: records fees and payments. Teacher: read-only students and classes. Viewer: read-only everything except audit.</p>
+  return `<div class="panel"><h2>Team</h2><p class="muted">Owner (proprietor): everything, including approvals. Accountant: records and prepares everything and sees the dashboard, but cannot approve. Bursar: records fees and payments. Teacher / Viewer: read only.</p>
   <table><tr><th>Name</th><th>Role</th><th>Active</th></tr>${S.team.map(m => `<tr><td>${esc(m.full_name || m.id.slice(0, 8))}</td><td>${m.role}</td><td>${m.active ? 'Yes' : 'No'}</td></tr>`).join('')}</table>
-  ${isOwner() ? '<p><b>Add a team member</b> — they must first create an account on the sign-in page with the same email.</p><div class="g2"><div><label>Email</label><input id="te"></div><div><label>Role</label><select id="tr"><option>bursar</option><option>teacher</option><option>viewer</option><option>owner</option></select></div></div><p><button data-act="addmember">Add member</button></p>' : ''}</div>`;
+  ${isOwner() ? '<p><b>Add a team member</b> — first create their login in Supabase (Authentication → Users → Add user), then add their email here.</p><div class="g2"><div><label>Email</label><input id="te"></div><div><label>Role</label><select id="tr"><option>accountant</option><option>bursar</option><option>teacher</option><option>viewer</option><option>owner</option></select></div></div><p><button data-act="addmember">Add member</button></p>' : ''}</div>`;
 }
 
 /* ============================ forms / actions ============================ */
@@ -726,23 +731,23 @@ async function stage2(a, id, t){
 async function refreshBackupInfo(){ try { lastBackup = await NM_LOCAL_API.lastBackup(); } catch(e){ lastBackup = null; } }
 function backupPanel(){
   return `<div class="panel" style="border-color:var(--orange)"><h2>Backup & restore</h2>
-  <p>All records are stored <b>only in this browser on this computer</b>. They are lost if browsing data is cleared, the browser is reinstalled, or you open the app on another computer. <b>Download a backup every week and after every month-end</b>, and keep a copy on a flash drive or email it to yourself.</p>
-  <p><button data-act="backup">Download backup (.json)</button> <label class="btn alt" style="display:inline-block;cursor:pointer;padding:8px 12px">Restore from a backup file…<input type="file" id="bkfile" accept=".json,application/json" style="display:none"></label> <button class="bad" data-act="wipe" style="float:right">Erase all data on this device</button></p>
+  ${CLOUDM ? '<p>Your records are stored in the school\'s <b>cloud database</b> and can be opened from any computer or phone after signing in. A downloaded backup is still a good extra copy: take one at every month-end and keep it somewhere safe.</p><p style="display:none">' : '<p>All records are stored <b>only in this browser on this computer</b>. They are lost if browsing data is cleared, the browser is reinstalled, or you open the app on another computer. <b>Download a backup every week and after every month-end</b>, and keep a copy on a flash drive or email it to yourself.'}</p>
+  <p><button data-act="backup">Download backup (.json)</button> <label class="btn alt" style="display:inline-block;cursor:pointer;padding:8px 12px">Restore from a backup file…<input type="file" id="bkfile" accept=".json,application/json" style="display:none"></label> <button class="bad" data-act="wipe" style="float:right">${CLOUDM ? 'Erase all school data' : 'Erase all data on this device'}</button></p>
   <p class="muted">Last backup: ${lastBackup ? new Date(lastBackup).toLocaleString() : 'never'}. To move to another computer: download a backup here, open the app there, and use “Restore from a backup file”.</p></div>`;
 }
-function backupModal(){ modal(`<h3>Backup & restore</h3><p>Your data lives only in this browser. Download a backup regularly.</p><p><button data-act="backup">Download backup now</button> <button class="alt" data-act="close">Close</button></p><p class="muted">Last backup: ${lastBackup ? new Date(lastBackup).toLocaleString() : 'never'}. Restore is on the School Setup page.</p>`); }
+function backupModal(){ modal(`<h3>Backup & restore</h3><p>${CLOUDM ? 'Your data is saved in the cloud. A downloaded copy is a useful extra backup.' : 'Your data lives only in this browser. Download a backup regularly.'}</p><p><button data-act="backup">Download backup now</button> <button class="alt" data-act="close">Close</button></p><p class="muted">Last backup: ${lastBackup ? new Date(lastBackup).toLocaleString() : 'never'}. Restore is on the School Setup page.</p>`); }
 async function downloadBackup(){
   const json = await NM_LOCAL_API.exportJSON(); const name = (S.school ? S.school.name : 'school').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' })); a.download = `NODAC-SchoolSuite-backup-${name}-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
   await refreshBackupInfo(); route(); toast('Backup downloaded — keep it somewhere safe');
 }
 async function restoreFile(f){
-  if(!f) return; if(!confirm('Restore from "' + f.name + '"? This REPLACES all data currently on this device.')) return;
+  if(!f) return; if(!confirm('Restore from "' + f.name + '"? This REPLACES all data currently ' + (CLOUDM ? 'in the school cloud database, for everyone.' : 'on this device.'))) return;
   try { await NM_LOCAL_API.importJSON(await f.text()); toast('Restored. Reloading…'); setTimeout(() => location.reload(), 600); } catch(e){ toast('Restore failed: ' + e.message, 7000); }
 }
 async function localActs(a){
   if(a === 'backup'){ await downloadBackup(); return true; }
-  if(a === 'wipe'){ modal(`<h3>Erase all data?</h3><p class="neg"><b>This permanently deletes every record on this device.</b> Download a backup first if you may need it.</p><label>Type ERASE to confirm</label><input id="f_w">${dashSet ? '<label>Dashboard password</label><input id="f_wp" type="password">' : ''}<p><button class="bad" data-act="dowipe">Erase everything</button> <button class="alt" data-act="close">Cancel</button></p>`); return true; }
+  if(a === 'wipe'){ modal(`<h3>Erase all data?</h3><p class="neg"><b>This permanently deletes every record ${CLOUDM ? 'in the cloud database, for everyone' : 'on this device'}.</b> Download a backup first if you may need it.</p><label>Type ERASE to confirm</label><input id="f_w">${dashSet ? '<label>Dashboard password</label><input id="f_wp" type="password">' : ''}<p><button class="bad" data-act="dowipe">Erase everything</button> <button class="alt" data-act="close">Cancel</button></p>`); return true; }
   if(a === 'dowipe'){ if(val('f_w').trim() !== 'ERASE') { toast('Type ERASE to confirm'); return true; } if(dashSet && !(await NM_LOCAL_API.dashCheck(val('f_wp')))) { toast('Enter the dashboard password to erase data'); return true; } await NM_LOCAL_API.reset(); location.reload(); return true; }
   return false;
 }
